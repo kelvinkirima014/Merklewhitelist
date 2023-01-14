@@ -7,7 +7,14 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod merklewhitelist {
     use super::*;
 
-    pub fn token_mint(_ctx: Context<TokenMint>) -> Result<()> {
+    pub fn token_mint(
+        ctx: Context<TokenMint>,
+        title: String,
+        uri: String,
+        symbol: String,      
+    ) -> Result<()> {
+        let authority = &ctx.accounts.payer; 
+
         Ok(())
     }
 }
@@ -23,14 +30,14 @@ pub struct TokenMint<'info> {
         mint::decimals = 9,
         mint::authority = mint_authority.key(),
     )]
-    pub mint_account: Account<'info, Mint>,
+    pub token_x: Account<'info, Mint>,
     #[account(
         init, 
         payer = payer,
         space = 8 + 32,
         seeds = [
             b"mint_authority_", 
-            mint_account.key().as_ref(),
+            token_x.key().as_ref(),
         ],
         bump
     )]
