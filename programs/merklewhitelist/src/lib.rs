@@ -47,4 +47,9 @@ pub struct MintToken<'info> {
 pub struct TransferToken<'info> {
     #[account(mut)]
     pub from: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub to: Account<'info, TokenAccount>,
+    pub transfer_authority: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+
 }
