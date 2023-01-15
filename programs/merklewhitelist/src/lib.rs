@@ -42,3 +42,9 @@ pub struct MintToken<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
+
+#[derive(Accounts)]
+pub struct TransferToken<'info> {
+    #[account(mut)]
+    pub from: Account<'info, TokenAccount>,
+}
