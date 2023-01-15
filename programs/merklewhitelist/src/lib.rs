@@ -7,7 +7,7 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod merklewhitelist {
     use super::*;
 
-    pub fn mint_token(ctx: Context<MintToken>,) -> Result<()> {
+    pub fn mint_token(ctx: Context<MintToken>) -> Result<()> {
         // Create the MintTo struct for our context
         let cpi_accounts = MintTo {
             mint: ctx.accounts.token_x.to_account_info(),
@@ -22,6 +22,27 @@ pub mod merklewhitelist {
         // Execute anchor's helper function to mint tokens
         anchor_spl::token::mint_to(cpi_ctx, 10)?;
         
+        Ok(())
+    }
+
+    pub fn transfer_token(ctx: Context<TransferToken>, initializer_amount: u64) -> Result<()> {
+
+          anchor_spl::token::transfer(
+            CpiContext::new(
+                //program arg
+                ctx.accounts.token_program.to_account_info(),
+                //accounts args
+                anchor_spl::token::Transfer {
+                    from: ctx.accounts.from.to_account_info(),
+                    to: ctx.accounts.to.to_account_info(),
+                    authority: ctx.accounts.transfer_authority.to_account_info(),
+                },
+            ),
+            initializer_amount,
+        )?;
+
+        msg!("Initialized new Fund Transfer instance for {}", initializer_amount);
+
         Ok(())
     }
 }
