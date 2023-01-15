@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token};
+use anchor_spl::token::{Mint, Token, TokenAccount, MintTo};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -7,47 +7,38 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod merklewhitelist {
     use super::*;
 
-    pub fn token_mint(
-        ctx: Context<TokenMint>,
-        title: String,
-        uri: String,
-        symbol: String,      
-    ) -> Result<()> {
-        let authority = &ctx.accounts.payer; 
+    pub fn mint_token(ctx: Context<MintToken>,) -> Result<()> {
+        // Create the MintTo struct for our context
+        let cpi_accounts = MintTo {
+            mint: ctx.accounts.token_x.to_account_info(),
+            to: ctx.accounts.token_account.to_account_info(),
+            authority: ctx.accounts.mint_authority.to_account_info(),
+        };
+        
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        // Create the CpiContext we need for the request
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
+        // Execute anchor's helper function to mint tokens
+        anchor_spl::token::mint_to(cpi_ctx, 10)?;
+        
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-pub struct TokenMint<'info> {
- /// CHECK: We're about to create this with Metaplex
+pub struct MintToken<'info> {
+    //the mint token
     #[account(mut)]
-    pub metadata_account: UncheckedAccount<'info>,
-    #[account(
-        init,
-        payer = payer,
-        mint::decimals = 9,
-        mint::authority = mint_authority.key(),
-    )]
     pub token_x: Account<'info, Mint>,
-    #[account(
-        init, 
-        payer = payer,
-        space = 8 + 32,
-        seeds = [
-            b"mint_authority_", 
-            token_x.key().as_ref(),
-        ],
-        bump
-    )]
-    pub mint_authority: Account<'info, MintAuthorityPda>,
+    //who we want to mint the token to
+    #[account(mut)]
+    pub mint_authority: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub payer: Signer<'info>,
     pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
-
-#[account]
-pub struct MintAuthorityPda {}
