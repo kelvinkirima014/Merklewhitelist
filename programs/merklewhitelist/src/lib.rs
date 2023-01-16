@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount, MintTo};
+use anchor_spl::token::{Token, TokenAccount, MintTo};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -47,10 +47,11 @@ pub mod merklewhitelist {
 #[derive(Accounts)]
 pub struct MintToken<'info> {
     //the mint token
+    /// CHECK: This is not dangerous since we do not read or write from this account
     #[account(mut)]
-    pub token_x: Account<'info, Mint>,
+    pub token_x: UncheckedAccount<'info>,
     //who we want to mint the token to
-     /// CHECK: This is the token that we want to mint
+     /// CHECK: This is not dangerous since we do  not read or write from this account
     #[account(mut)]
     pub mint_authority: UncheckedAccount<'info>,
     #[account(mut)]
