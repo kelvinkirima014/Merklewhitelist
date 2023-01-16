@@ -69,7 +69,6 @@ describe("merklewhitelist", () => {
     );
 
     console.log("Mint key: ", mintKeypair.publicKey.toString());
-    console.log("User: ", key.toString);
     console.log("Create transaction: ", createTx);
 
     //finally mint our token into specified ATA
@@ -79,6 +78,9 @@ describe("merklewhitelist", () => {
       tokenAccount: associatedTokenAccount,
       mintAuthority: key,
     }).rpc();
+    
     console.log("Your transaction signature", tx);
   });
+
+
 });
