@@ -50,6 +50,7 @@ pub struct MintToken<'info> {
     #[account(mut)]
     pub token_x: Account<'info, Mint>,
     //who we want to mint the token to
+     /// CHECK: This is the token that we want to mint
     #[account(mut)]
     pub mint_authority: UncheckedAccount<'info>,
     #[account(mut)]
