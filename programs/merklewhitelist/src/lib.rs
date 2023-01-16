@@ -25,24 +25,21 @@ pub mod merklewhitelist {
         Ok(())
     }
 
-    pub fn transfer_token(ctx: Context<TransferToken>, initializer_amount: u64) -> Result<()> {
+    pub fn transfer_token(ctx: Context<TransferToken>, transfer_amount: u64) -> Result<()> {
 
-          anchor_spl::token::transfer(
-            CpiContext::new(
-                //program arg
-                ctx.accounts.token_program.to_account_info(),
-                //accounts args
-                anchor_spl::token::Transfer {
-                    from: ctx.accounts.from.to_account_info(),
-                    to: ctx.accounts.to.to_account_info(),
-                    authority: ctx.accounts.transfer_authority.to_account_info(),
-                },
-            ),
-            initializer_amount,
-        )?;
+        let transfer_instruction = anchor_spl::token::Transfer{
+            from: ctx.accounts.from.to_account_info(),
+            to: ctx.accounts.to.to_account_info(),
+            authority: ctx.accounts.transfer_authority.to_account_info(),
+        };
+         
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        // Create the Context for our Transfer request
+        let cpi_ctx = CpiContext::new(cpi_program, transfer_instruction);
 
-        msg!("Initialized new Fund Transfer instance for {}", initializer_amount);
-
+        // Execute anchor's helper function to transfer tokens
+        anchor_spl::token::transfer(cpi_ctx, transfer_amount)?;
+ 
         Ok(())
     }
 }
