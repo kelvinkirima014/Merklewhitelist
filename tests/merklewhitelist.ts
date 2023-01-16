@@ -4,13 +4,11 @@ import { Merklewhitelist } from "../target/types/merklewhitelist";
 import {
   TOKEN_PROGRAM_ID,
   MINT_SIZE,
-  createAssociatedTokenAccount,
   getAssociatedTokenAddress,
-  createInitializeMint2Instruction,
   createInitializeMintInstruction,
   createAssociatedTokenAccountInstruction,
-  AccountState,
 } from "@solana/spl-token";
+import { ParsedAccountData } from "@solana/web3.js";
 
 describe("merklewhitelist", () => {
   // Configure the client to use the local cluster.
@@ -78,8 +76,9 @@ describe("merklewhitelist", () => {
       tokenAccount: associatedTokenAccount,
       mintAuthority: key,
     }).rpc();
-    
+
     console.log("Your transaction signature", tx);
+
   });
 
 
