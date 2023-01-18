@@ -3,6 +3,10 @@ use anchor_spl::token::{Mint, Token, TokenAccount, MintTo};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
+fn verify(){
+
+}
+
 #[program]
 pub mod merklewhitelist {
     use super::*;
@@ -20,28 +24,28 @@ pub mod merklewhitelist {
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
         // Execute anchor's helper function to mint tokens
-        anchor_spl::token::mint_to(cpi_ctx, 10)?;
+        anchor_spl::token::mint_to(cpi_ctx, 100)?;
         
         Ok(())
     }
 
-    pub fn transfer_token(ctx: Context<TransferToken>, transfer_amount: u64) -> Result<()> {
+    // pub fn transfer_token(ctx: Context<TransferToken>, transfer_amount: u64) -> Result<()> {
 
-        let transfer_instruction = anchor_spl::token::Transfer{
-            from: ctx.accounts.from.to_account_info(),
-            to: ctx.accounts.to.to_account_info(),
-            authority: ctx.accounts.transfer_authority.to_account_info(),
-        };
+    //     let transfer_instruction = anchor_spl::token::Transfer{
+    //         from: ctx.accounts.from.to_account_info(),
+    //         to: ctx.accounts.to.to_account_info(),
+    //         authority: ctx.accounts.transfer_authority.to_account_info(),
+    //     };
          
-        let cpi_program = ctx.accounts.token_program.to_account_info();
-        // Create the Context for our Transfer request
-        let cpi_ctx = CpiContext::new(cpi_program, transfer_instruction);
+    //     let cpi_program = ctx.accounts.token_program.to_account_info();
+    //     // Create the Context for our Transfer request
+    //     let cpi_ctx = CpiContext::new(cpi_program, transfer_instruction);
 
-        // Execute anchor's helper function to transfer tokens
-        anchor_spl::token::transfer(cpi_ctx, transfer_amount)?;
+    //     // Execute anchor's helper function to transfer tokens
+    //     anchor_spl::token::transfer(cpi_ctx, transfer_amount)?;
  
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
 #[derive(Accounts)]
@@ -63,13 +67,15 @@ pub struct MintToken<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-#[derive(Accounts)]
-pub struct TransferToken<'info> {
-    #[account(mut)]
-    pub from: Account<'info, TokenAccount>,
-    #[account(mut)]
-    pub to: Account<'info, TokenAccount>,
-    pub transfer_authority: Signer<'info>,
-    pub token_program: Program<'info, Token>,
+// #[derive(Accounts)]
+// pub struct TransferToken<'info> {
+//     #[account(mut)]
+//     pub from: Account<'info, TokenAccount>,
+//     #[account(mut)]
+//     pub to: Account<'info, TokenAccount>,
+//     pub transfer_authority: Signer<'info>,
+//     pub token_program: Program<'info, Token>,
 
-}
+// }
+
+
