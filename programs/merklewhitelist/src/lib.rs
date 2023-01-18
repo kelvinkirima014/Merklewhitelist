@@ -1,9 +1,24 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::keccak};
 use anchor_spl::token::{Mint, Token, TokenAccount, MintTo};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-fn verify(){
+fn merkle_verify(
+    proof: Vec<[u8; 32]>,
+    root: [u8; 32],
+    leaf: [u8; 32],
+) -> bool{
+    let mut computed_hash = leaf;
+    for proof_element in proof.into_iter(){
+        if computed_hash <= proof_element {
+            //hash(current computed_hash, current element of proof)
+            computed_hash = keccak::hashv(&[&computed_hash, &proof_element]).0;
+        } else {
+            //hash (current element of proof, current computed hash)
+            computed_hash = keccak::hashv(&[&proof_element, &computed_hash]).0;
+        }
+    }
+    computed_hash == root
 
 }
 
