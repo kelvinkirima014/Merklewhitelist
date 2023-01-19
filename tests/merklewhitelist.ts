@@ -8,7 +8,6 @@ import {
   createInitializeMintInstruction,
   createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
-import { ParsedAccountData } from "@solana/web3.js";
 
 describe("merklewhitelist", () => {
   // Configure the client to use the local cluster.
@@ -70,8 +69,8 @@ describe("merklewhitelist", () => {
     console.log("Create transaction: ", createTx);
 
     //finally mint our token into specified ATA
-    const tx = await program.methods.mintToken().accounts({
-      tokenX: mintKeypair.publicKey,
+    const tx = await program.methods.redeemToken().accounts({
+      mintTokenX: mintKeypair.publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,
       tokenAccount: associatedTokenAccount,
       mintAuthority: key,

@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::keccak};
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{Mint, Token, TokenAccount, MintTo};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -26,20 +26,34 @@ fn _merkle_verify(
 pub mod merklewhitelist {
     use super::*;
 
-    pub fn redeem_token(ctx: Context<RedeemToken>, transfer_amount: u64) -> Result<()> {
-        // Create the MintTo struct for our context
-        let transfer_instruction = anchor_spl::token::Transfer {
-            from: ctx.accounts.from.to_account_info(),
+    pub fn mint_token_to_wallet(
+        ctx: Context<MintTokenToWallet>, 
+        amount: u64,
+    ) -> Result<()> {
+
+        let cpi_accounts = MintTo {
+            mint: ctx.accounts.mint_account.to_account_info(),
             to: ctx.accounts.to.to_account_info(),
-            authority: ctx.accounts.mint_authority.to_account_info(),
+            authority: ctx.accounts.redeem_authority.to_account_info(),
         };
         
         let cpi_program = ctx.accounts.token_program.to_account_info();
-        // Create the CpiContext we need for the request
-        let cpi_ctx = CpiContext::new(cpi_program, transfer_instruction);
+        
+        let seeds = [
+            b"MerkleTokenDistributor".as_ref(),
+            &ctx.accounts.redeem_authority.base.to_bytes(),
+            &[ctx.accounts.redeem_authority.bump],
+        ];
 
-        // anchor's helper function to transfer tokens
-        anchor_spl::token::transfer(cpi_ctx, transfer_amount)?;
+        let seeds_binding = [&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(
+            cpi_program,
+            cpi_accounts,
+            &seeds_binding
+        );
+
+        // anchor's helper function to mint tokens
+        anchor_spl::token::mint_to(cpi_ctx, amount)?;
         
         Ok(())
     }
@@ -47,17 +61,14 @@ pub mod merklewhitelist {
 }
 
 #[derive(Accounts)]
-pub struct RedeemToken<'info> {
+pub struct MintTokenToWallet<'info> {
     //the mint token
     /// CHECK: This is not dangerous since we do not read or write from this account
     #[account(mut)]
-    pub token_x: Account<'info, Mint>,
+    pub mint_account: Account<'info, Mint>,
     //who we want to mint the token to
     #[account(mut)]
-    pub mint_authority: Account<'info, MerkleTokenDistributor>,
-    //mint_authority ATA containing the tokens to mint
-    #[account(mut)]
-    pub from: Account<'info, TokenAccount>,
+    pub redeem_authority: Account<'info, MerkleTokenDistributor>,
     //who's redeeming the token
     #[account(mut)]
     pub to: Account<'info, TokenAccount>,
