@@ -34,18 +34,19 @@ pub mod merklewhitelist {
         let cpi_accounts = MintTo {
             mint: ctx.accounts.mint_account.to_account_info(),
             to: ctx.accounts.to.to_account_info(),
-            authority: ctx.accounts.redeem_authority.to_account_info(),
+            authority: ctx.accounts.merkle_distributor.to_account_info(),
         };
         
         let cpi_program = ctx.accounts.token_program.to_account_info();
         
         let seeds = [
             b"MerkleTokenDistributor".as_ref(),
-            &ctx.accounts.redeem_authority.base.to_bytes(),
-            &[ctx.accounts.redeem_authority.bump],
+            &ctx.accounts.merkle_distributor.base.to_bytes(),
+            &[ctx.accounts.merkle_distributor.bump],
         ];
 
         let seeds_binding = [&seeds[..]];
+
         let cpi_ctx = CpiContext::new_with_signer(
             cpi_program,
             cpi_accounts,
@@ -62,14 +63,19 @@ pub mod merklewhitelist {
 
 #[derive(Accounts)]
 pub struct MintTokenToWallet<'info> {
-    //the mint token
-    /// CHECK: This is not dangerous since we do not read or write from this account
+    //the token we're minting
     #[account(mut)]
     pub mint_account: Account<'info, Mint>,
     //who we want to mint the token to
-    #[account(mut)]
-    pub redeem_authority: Account<'info, MerkleTokenDistributor>,
-    //who's redeeming the token
+    #[account(
+        seeds = [
+            b"MerkleTokenDistributor", 
+            &merkle_distributor.base.to_bytes(),
+        ],
+        bump = merkle_distributor.bump
+    )]
+    pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
+    //who's minting the token
     #[account(mut)]
     pub to: Account<'info, TokenAccount>,
     //account to pay for the mint
@@ -88,8 +94,6 @@ pub struct MerkleTokenDistributor {
     pub bump: u8,
     //256-bit Merkle root
     pub root: [u8; 32],
-    //mint of the token
-    pub mint: Pubkey,
     //MAX num of tokens that can be minted
     pub max_mint_amount: u64,
 }
