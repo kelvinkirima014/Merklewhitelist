@@ -114,7 +114,17 @@ pub struct MintStatus {
     pub is_minted: bool,
     // who minted the tokens
     pub minter: Pubkey,
-    // Amount of tokens claimed.
+    // Amount of tokens minted.
+    pub amount: u64,
+}
+
+#[event]
+pub struct MintEvent {
+    /// Index of the mint.
+    pub index: u64,
+    /// User that minted.
+    pub minter: Pubkey,
+    /// Amount of tokens to distribute.
     pub amount: u64,
 }
 
