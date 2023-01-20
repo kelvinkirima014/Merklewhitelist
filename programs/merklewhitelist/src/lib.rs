@@ -35,7 +35,6 @@ pub mod merklewhitelist {
         proof: Vec<[u8; 32]>,
     ) -> Result<()> {
         //init ctx variables
-        let mint_status = &mut ctx.accounts.mint_status;
         let minter = &mut ctx.accounts.minter;
         let token_distributor = &mut ctx.accounts.merkle_distributor;
         //check that the minter is a Signer
@@ -52,12 +51,7 @@ pub mod merklewhitelist {
             MerkleError::InvalidProof
         );
 
-        //mark it minted and mint the tokens
-        mint_status.amount = amount;
-        mint_status.is_minted = true;
-        mint_status.minter = minter.key();
-        
-        //accounts
+        //accounts needed for the mint
         let cpi_accounts = MintTo {
             mint: ctx.accounts.mint_account.to_account_info(),
             to: ctx.accounts.to.to_account_info(),
@@ -81,9 +75,21 @@ pub mod merklewhitelist {
             cpi_accounts,
             &seeds_binding
         );
- 
+        
+        require!(
+            ctx.accounts.to.owner == minter.key(),
+            MerkleError::OwnerMismatch
+        );
         // anchor's helper function to mint tokens to address
         anchor_spl::token::mint_to(cpi_ctx, amount)?;
+
+        let token_distributor = &mut ctx.accounts.merkle_distributor;
+        token_distributor.total_amount_minted += amount;
+
+        require!(
+            token_distributor.total_amount_minted <= token_distributor.max_mint_amount,
+            MerkleError::ExceededMaxMint
+        );
         
         Ok(())
     }
@@ -105,19 +111,6 @@ pub struct MintTokenToWallet<'info> {
         bump = merkle_distributor.bump
     )]
     pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
-      /// Status of the mint.
-    #[account(
-        init,
-        seeds = [
-            b"MintStatus".as_ref(),
-            index.to_le_bytes().as_ref(),
-            merkle_distributor.base.to_bytes().as_ref()
-        ],
-        bump,
-        space = 8 + 8 + 8 + 8,
-        payer = payer
-    )]
-    pub mint_status: Account<'info, MintStatus>,
     //account to send the minted tokens to
     #[account(mut)]
     pub to: Account<'info, TokenAccount>,
@@ -140,29 +133,10 @@ pub struct MerkleTokenDistributor {
     pub bump: u8,
     //256-bit Merkle root
     pub root: [u8; 32],
+    //total token amount minted
+    pub total_amount_minted: u64,
     //MAX num of tokens that can be minted
     pub max_mint_amount: u64,
-}
-
-#[account]
-#[derive(Default)]
-pub struct MintStatus {
-     // If true, the tokens have been minted.
-    pub is_minted: bool,
-    // who minted the tokens
-    pub minter: Pubkey,
-    // Amount of tokens minted.
-    pub amount: u64,
-}
-
-#[event]
-pub struct MintEvent {
-    /// Index of the mint.
-    pub index: u64,
-    /// User that minted.
-    pub minter: Pubkey,
-    /// Amount of tokens to distribute.
-    pub amount: u64,
 }
 
 #[error_code]
