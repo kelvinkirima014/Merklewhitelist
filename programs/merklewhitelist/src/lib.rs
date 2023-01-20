@@ -1,9 +1,11 @@
 use anchor_lang::{prelude::*, solana_program::keccak};
 use anchor_spl::token::{Mint, Token, TokenAccount, MintTo};
 
+
+
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-fn _merkle_verify(
+fn merkle_verify(
     proof: Vec<[u8; 32]>,
     root: [u8; 32],
     leaf: [u8; 32],
@@ -29,9 +31,32 @@ pub mod merklewhitelist {
     pub fn mint_token_to_wallet(
         ctx: Context<MintTokenToWallet>, 
         amount: u64,
-
+        index: u64,
+        proof: Vec<[u8; 32]>,
     ) -> Result<()> {
+        //init ctx variables
+        let mint_status = &mut ctx.accounts.mint_status;
+        let minter = &mut ctx.accounts.minter;
+        let token_distributor = &mut ctx.accounts.merkle_distributor;
+        //check that the minter is a Signer
+        require!(minter.is_signer, MerkleError::Unauthorized);
 
+        //verify the merkle proof
+        let node = keccak::hashv(&[
+            &index.to_le_bytes(),
+            &minter.key().to_bytes(),
+            &amount.to_le_bytes(),
+        ]);
+        require!(
+            merkle_verify(proof, token_distributor.root, node.0),
+            MerkleError::InvalidProof
+        );
+
+        //mark it minted and mint the tokens
+        mint_status.amount = amount;
+        mint_status.is_minted = true;
+        mint_status.minter = minter.key();
+        
         //accounts
         let cpi_accounts = MintTo {
             mint: ctx.accounts.mint_account.to_account_info(),
@@ -50,11 +75,6 @@ pub mod merklewhitelist {
         ];
         let seeds_binding = [&seeds[..]];
 
-        // require!(
-        //     merkle_verify(proof, distributor.root, node.0),
-        //     MintError::InvalidProof
-        // );
-
         //create the CPI context
         let cpi_ctx = CpiContext::new_with_signer(
             cpi_program,
@@ -71,11 +91,12 @@ pub mod merklewhitelist {
 }
 
 #[derive(Accounts)]
+#[instruction(index: u64)]
 pub struct MintTokenToWallet<'info> {
     //the token we're minting
     #[account(mut)]
     pub mint_account: Account<'info, Mint>,
-    //who we want to mint the token to
+    //the merkle distributor
     #[account(
         seeds = [
             b"MerkleTokenDistributor", 
@@ -84,9 +105,25 @@ pub struct MintTokenToWallet<'info> {
         bump = merkle_distributor.bump
     )]
     pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
-    //who's minting the token
+      /// Status of the mint.
+    #[account(
+        init,
+        seeds = [
+            b"MintStatus".as_ref(),
+            index.to_le_bytes().as_ref(),
+            merkle_distributor.base.to_bytes().as_ref()
+        ],
+        bump,
+        space = 8 + 8 + 8 + 8,
+        payer = payer
+    )]
+    pub mint_status: Account<'info, MintStatus>,
+    //account to send the minted tokens to
     #[account(mut)]
     pub to: Account<'info, TokenAccount>,
+     // Who is minting the tokens.
+    #[account(address = to.owner @ MerkleError::OwnerMismatch)]
+    pub minter: Signer<'info>,
     //account to pay for the mint
     #[account(mut)]
     pub payer: Signer<'info>,
