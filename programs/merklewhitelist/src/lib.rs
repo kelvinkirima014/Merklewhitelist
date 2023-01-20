@@ -112,10 +112,22 @@ pub struct MerkleTokenDistributor {
 pub struct MintStatus {
      // If true, the tokens have been minted.
     pub is_minted: bool,
-    // who minted the tokens.
+    // who minted the tokens
     pub minter: Pubkey,
     // Amount of tokens claimed.
     pub amount: u64,
+}
+
+#[error_code]
+pub enum MerkleError {
+    #[msg("Invalid Merkle Proof")]
+    InvalidProof,
+    #[msg("Account is not authorized to execute this instruction")]
+    Unauthorized,
+     #[msg("Token account owner did not match intended owner")]
+    OwnerMismatch,
+    #[msg("Exceeded maximum mint amount.")]
+    ExceededMaxMint,
 }
 
 
