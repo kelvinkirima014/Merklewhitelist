@@ -29,31 +29,40 @@ pub mod merklewhitelist {
     pub fn mint_token_to_wallet(
         ctx: Context<MintTokenToWallet>, 
         amount: u64,
+
     ) -> Result<()> {
 
+        //accounts
         let cpi_accounts = MintTo {
             mint: ctx.accounts.mint_account.to_account_info(),
             to: ctx.accounts.to.to_account_info(),
             authority: ctx.accounts.merkle_distributor.to_account_info(),
         };
         
+        //the token program
         let cpi_program = ctx.accounts.token_program.to_account_info();
         
+        //PDA seeds
         let seeds = [
             b"MerkleTokenDistributor".as_ref(),
             &ctx.accounts.merkle_distributor.base.to_bytes(),
             &[ctx.accounts.merkle_distributor.bump],
         ];
-
         let seeds_binding = [&seeds[..]];
 
+        // require!(
+        //     merkle_verify(proof, distributor.root, node.0),
+        //     MintError::InvalidProof
+        // );
+
+        //create the CPI context
         let cpi_ctx = CpiContext::new_with_signer(
             cpi_program,
             cpi_accounts,
             &seeds_binding
         );
-
-        // anchor's helper function to mint tokens
+ 
+        // anchor's helper function to mint tokens to address
         anchor_spl::token::mint_to(cpi_ctx, amount)?;
         
         Ok(())
@@ -98,6 +107,15 @@ pub struct MerkleTokenDistributor {
     pub max_mint_amount: u64,
 }
 
-
+#[account]
+#[derive(Default)]
+pub struct MintStatus {
+     // If true, the tokens have been minted.
+    pub is_minted: bool,
+    // who minted the tokens.
+    pub minter: Pubkey,
+    // Amount of tokens claimed.
+    pub amount: u64,
+}
 
 
