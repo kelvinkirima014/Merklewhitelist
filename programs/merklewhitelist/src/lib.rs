@@ -30,6 +30,7 @@ pub mod merklewhitelist {
 
     pub fn mint_token_to_wallet(
         ctx: Context<MintTokenToWallet>, 
+        merkle_distributor_pda_bump: u8,
         amount: u64,
         index: u64,
         proof: Vec<[u8; 32]>,
@@ -40,12 +41,13 @@ pub mod merklewhitelist {
         //check that the minter is a Signer
         require!(minter.is_signer, MerkleError::Unauthorized);
 
-        //verify the merkle proof
+        //a hash of the leaf node
         let node = keccak::hashv(&[
             &index.to_le_bytes(),
             &minter.key().to_bytes(),
             &amount.to_le_bytes(),
         ]);
+        //proof, root and leaf
         require!(
             merkle_verify(proof, token_distributor.root, node.0),
             MerkleError::InvalidProof
@@ -54,7 +56,7 @@ pub mod merklewhitelist {
         //accounts needed for the mint
         let cpi_accounts = MintTo {
             mint: ctx.accounts.mint_account.to_account_info(),
-            to: ctx.accounts.to.to_account_info(),
+            to: ctx.accounts.recipient.to_account_info(),
             authority: ctx.accounts.merkle_distributor.to_account_info(),
         };
         
@@ -65,7 +67,7 @@ pub mod merklewhitelist {
         let seeds = [
             b"MerkleTokenDistributor".as_ref(),
             &ctx.accounts.merkle_distributor.base.to_bytes(),
-            &[ctx.accounts.merkle_distributor.bump],
+            &[merkle_distributor_pda_bump],
         ];
         let seeds_binding = [&seeds[..]];
 
@@ -77,7 +79,7 @@ pub mod merklewhitelist {
         );
         
         require!(
-            ctx.accounts.to.owner == minter.key(),
+            ctx.accounts.recipient.owner == minter.key(),
             MerkleError::OwnerMismatch
         );
         // anchor's helper function to mint tokens to address
@@ -97,7 +99,7 @@ pub mod merklewhitelist {
 }
 
 #[derive(Accounts)]
-#[instruction(index: u64)]
+#[instruction(index: u64, amount: u64, merkle_distributor_pda_bump: u8)]
 pub struct MintTokenToWallet<'info> {
     //the token we're minting
     #[account(mut)]
@@ -108,14 +110,14 @@ pub struct MintTokenToWallet<'info> {
             b"MerkleTokenDistributor", 
             &merkle_distributor.base.to_bytes(),
         ],
-        bump = merkle_distributor.bump
+        bump = merkle_distributor_pda_bump
     )]
     pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
     //account to send the minted tokens to
     #[account(mut)]
-    pub to: Account<'info, TokenAccount>,
+    pub recipient: Account<'info, TokenAccount>,
      // Who is minting the tokens.
-    #[account(address = to.owner @ MerkleError::OwnerMismatch)]
+    #[account(address = recipient.owner @ MerkleError::OwnerMismatch)]
     pub minter: Signer<'info>,
     //account to pay for the mint
     #[account(mut)]
@@ -129,8 +131,6 @@ pub struct MintTokenToWallet<'info> {
 pub struct MerkleTokenDistributor {
     //base key to derive PDA
     pub base: Pubkey,
-    //bump seed
-    pub bump: u8,
     //256-bit Merkle root
     pub root: [u8; 32],
     //total token amount minted

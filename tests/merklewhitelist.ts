@@ -10,75 +10,44 @@ import {
 } from "@solana/spl-token";
 
 describe("merklewhitelist", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
-  //Retrieve our Rust program
+  //configure the client to use the local cluster
+  const provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
+  //wallet to pay for account creations
+  const payer = provider.wallet as anchor.Wallet;
+  //retrieve our Rust program
   const program = anchor.workspace.Merklewhitelist as Program<Merklewhitelist>;
-  //generate a random keypair that will represent our token
+   //generate a keypair that will represent our token
   const mintKeypair = anchor.web3.Keypair.generate();
   console.log(`New token: ${mintKeypair.publicKey}`);
 
-  it("Mints the token", async () => {
-    //Get anchor's wallet public key
-    const key = anchor.AnchorProvider.env().wallet.publicKey;
-     // Get the amount of SOL needed to pay rent for our Token Mint
-    const lamports: number = await program.provider.connection.getMinimumBalanceForRentExemption(
-      MINT_SIZE
-    );
-    let associatedTokenAccount = await getAssociatedTokenAddress(
-      mintKeypair.publicKey,
-      key
-    );
+  it("Mints a token to a wallet", async () => {
 
-    //call our instructions
-    const mint_tx = new anchor.web3.Transaction().add(
-      //create an account from the mint keypair we created
-      anchor.web3.SystemProgram.createAccount({
-        fromPubkey: key,
-        newAccountPubkey: mintKeypair.publicKey,
-        space: MINT_SIZE,
-        programId: TOKEN_PROGRAM_ID,
-        lamports
-      }),
-      createInitializeMintInstruction(
-        mintKeypair.publicKey,
-        0,
-        key,
-        key,
-      ),
-      //create an Associated Token Account(ATA) that is associated 
-      //with our token in anchor wallet
-      createAssociatedTokenAccountInstruction(
-        key,
-        associatedTokenAccount,
-        key,
-        mintKeypair.publicKey,
-      )
+    const recipientKeypair = anchor.web3.Keypair.generate();
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop( recipientKeypair.publicKey, 1 * anchor.web3.LAMPORTS_PER_SOL)
+    );
+    console.log(`Recipient pubkey: ${recipientKeypair.publicKey}`);
+    
+    const [merkleDistributor, merkleDistributorPdaBump] =  await anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("MerkleTokenDistributor"),
+        mintKeypair.publicKey.toBuffer(),
+      ],
+      program.programId,
     );
 
-    //creates and sends the transaction
-    const createTx = await anchor.AnchorProvider.env().sendAndConfirm(
-      mint_tx, [mintKeypair]
-    );
+    const amountToMint = 1;
 
-    console.log(
-      await program.provider.connection.getParsedAccountInfo(mintKeypair.publicKey)
-    );
+    const tokenAddress = await anchor.utils.token.associatedAddress({
+      mint: mintKeypair.publicKey,
+      owner: recipientKeypair.publicKey,
+    });
+    console.log(`token address: ${tokenAddress}`);
 
-    console.log("Mint key: ", mintKeypair.publicKey.toString());
-    console.log("Create transaction: ", createTx);
-
-    //finally mint our token into specified ATA
-    const tx = await program.methods.redeemToken().accounts({
-      mintTokenX: mintKeypair.publicKey,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      tokenAccount: associatedTokenAccount,
-      mintAuthority: key,
-    }).rpc();
-
-    console.log("Your transaction signature", tx);
+    await program.methods.mintTokenToWallet(
+      new anchor.BN(amountToMint), merkleDistributorPdaBump
+    )
 
   });
-
-
 });
