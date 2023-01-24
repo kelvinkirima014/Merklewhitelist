@@ -30,7 +30,6 @@ describe("merklewhitelist", () => {
 
     //merkle root
     const root = getMerkleRoot(allowAddresses);
-    console.log(`root: ${root}`);
 
     const proof = getMerkleProof(
       allowAddresses,
@@ -42,6 +41,7 @@ describe("merklewhitelist", () => {
       Buffer.from(keccak_256("GMwbF8rdnipEsvLfwUStnBuZQYoFfPm4aPdqxF615anJ")),
       Buffer.from(keccak_256(root.toString()))
     );
+    console.log({ tree1: isTreeValid });
     //recipient keypair
     const recipientKeypair = anchor.web3.Keypair.generate();
     await provider.connection.confirmTransaction(
@@ -51,6 +51,8 @@ describe("merklewhitelist", () => {
     
     const merkleDistributorPdaBump = anchor.web3.PublicKey.findProgramAddressSync(
       [
+        //We need to reference both objects as a Byte Buffer, which is what
+        //Solana's find_program_address requires to find the PDA.
         Buffer.from("MerkleTokenDistributor"),
         mintKeypair.publicKey.toBuffer(),
       ],
