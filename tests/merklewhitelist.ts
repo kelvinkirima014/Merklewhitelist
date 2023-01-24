@@ -15,6 +15,9 @@ describe("merklewhitelist", () => {
   anchor.setProvider(provider);
   //wallet to pay for account creations
   const payer = provider.wallet as anchor.Wallet;
+  console.log(`Payer is: ${payer.publicKey}`);
+  const keypair = anchor.web3.Keypair.generate();
+  console.log(`public gen keypair: ${keypair.publicKey}`);
   //retrieve our Rust program
   const program = anchor.workspace.Merklewhitelist as Program<Merklewhitelist>;
    //generate a keypair that will represent our token
@@ -37,6 +40,7 @@ describe("merklewhitelist", () => {
       program.programId,
     );
 
+
     const amountToMint = 1;
 
     const tokenAddress = await anchor.utils.token.associatedAddress({
@@ -44,6 +48,8 @@ describe("merklewhitelist", () => {
       owner: recipientKeypair.publicKey,
     });
     console.log(`token address: ${tokenAddress}`);
+    console.log(`token balance: ${tokenAddress}`);
+
 
     await program.methods.mintTokenToWallet(
       new anchor.BN(amountToMint), merkleDistributorPdaBump
@@ -51,3 +57,7 @@ describe("merklewhitelist", () => {
 
   });
 });
+// merkleDistributorPdaBump,
+//amount,
+//index
+//proof

@@ -35,6 +35,8 @@ pub mod merklewhitelist {
         index: u64,
         proof: Vec<[u8; 32]>,
     ) -> Result<()> {
+        msg!("Start of token mint operation...");
+        
         //init ctx variables
         let minter = &mut ctx.accounts.minter;
         let token_distributor = &mut ctx.accounts.merkle_distributor;
@@ -53,6 +55,8 @@ pub mod merklewhitelist {
             MerkleError::InvalidProof
         );
 
+        msg!("Mint: {}", ctx.accounts.mint_account.to_account_info().key());
+        msg!("Token receiver address: {}", ctx.accounts.recipient.to_account_info().key());
         //accounts needed for the mint
         let cpi_accounts = MintTo {
             mint: ctx.accounts.mint_account.to_account_info(),
