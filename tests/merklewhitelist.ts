@@ -41,7 +41,7 @@ describe("merklewhitelist", () => {
       Buffer.from(keccak_256("GMwbF8rdnipEsvLfwUStnBuZQYoFfPm4aPdqxF615anJ")),
       Buffer.from(keccak_256(root.toString()))
     );
-    console.log({ tree1: isTreeValid });
+    console.log({ tree: isTreeValid });
     //recipient keypair
     const recipientKeypair = anchor.web3.Keypair.generate();
     await provider.connection.confirmTransaction(
@@ -49,7 +49,7 @@ describe("merklewhitelist", () => {
     );
     console.log(`Recipient pubkey: ${recipientKeypair.publicKey}`);
     
-    const merkleDistributorPdaBump = anchor.web3.PublicKey.findProgramAddressSync(
+    const [merkleDistributor, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         //We need to reference both objects as a Byte Buffer, which is what
         //Solana's find_program_address requires to find the PDA.
@@ -68,11 +68,12 @@ describe("merklewhitelist", () => {
     });
     console.log(`token address: ${tokenAddress}`);
   
+    const index = 0;
     await program.methods.mintTokenToWallet(
       new anchor.BN(amountToMint), merkleDistributorPdaBump, index, proof
     ).accounts({
       tokenMint: mintKeypair.publicKey,
-     // merkleDistributor,
+      merkleDistributor,
       recipient: recipientKeypair.publicKey,
       payer: payer.publicKey,
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,
