@@ -1,7 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::keccak};
-use anchor_spl::token::{Mint, Token, TokenAccount, MintTo};
-
-
+use anchor_spl::{token::{Mint, Token, TokenAccount, MintTo}, associated_token:: AssociatedToken};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -43,7 +41,7 @@ pub mod merklewhitelist {
         //check that the minter is a Signer
         require!(minter.is_signer, MerkleError::Unauthorized);
 
-        //a hash of the leaf node
+        //a node/leaf in a merkletree
         let node = keccak::hashv(&[
             &index.to_le_bytes(),
             &minter.key().to_bytes(),
@@ -55,11 +53,11 @@ pub mod merklewhitelist {
             MerkleError::InvalidProof
         );
 
-        msg!("Mint: {}", ctx.accounts.mint_account.to_account_info().key());
+        msg!("Mint: {}", ctx.accounts.token_mint.to_account_info().key());
         msg!("Token receiver address: {}", ctx.accounts.recipient.to_account_info().key());
         //accounts needed for the mint
         let cpi_accounts = MintTo {
-            mint: ctx.accounts.mint_account.to_account_info(),
+            mint: ctx.accounts.token_mint.to_account_info(),
             to: ctx.accounts.recipient.to_account_info(),
             authority: ctx.accounts.merkle_distributor.to_account_info(),
         };
@@ -103,11 +101,11 @@ pub mod merklewhitelist {
 }
 
 #[derive(Accounts)]
-#[instruction(index: u64, amount: u64, merkle_distributor_pda_bump: u8)]
+#[instruction(merkle_distributor_pda_bump: u8)]
 pub struct MintTokenToWallet<'info> {
     //the token we're minting
     #[account(mut)]
-    pub mint_account: Account<'info, Mint>,
+    pub token_mint: Account<'info, Mint>,
     //the merkle distributor
     #[account(
         seeds = [
@@ -118,22 +116,29 @@ pub struct MintTokenToWallet<'info> {
     )]
     pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
     //account to send the minted tokens to
-    #[account(mut)]
+     #[account(
+        init,
+        payer = payer,
+        associated_token::mint = token_mint,
+        associated_token::authority = minter,
+     )]
     pub recipient: Account<'info, TokenAccount>,
      // Who is minting the tokens.
     #[account(address = recipient.owner @ MerkleError::OwnerMismatch)]
     pub minter: Signer<'info>,
-    //account to pay for the mint
+    //who's paying for the mint
     #[account(mut)]
     pub payer: Signer<'info>,
+    pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
 }
 
 #[account]
 #[derive(Default)]
 pub struct MerkleTokenDistributor {
-    //base key to derive PDA
+    //base key used to derive PDA
     pub base: Pubkey,
     //256-bit Merkle root
     pub root: [u8; 32],
