@@ -23,17 +23,18 @@ describe("merklewhitelist", () => {
 
   it("Mints a token to a wallet", async () => {
 
-    type merkleDistributor = {
-
-    }
-
     let proof: Array<Buffer>;
 
     let amount: number;
 
     let index: number;
 
-    
+     const leaf = Buffer.from([
+    ...new anchor.BN(index).toArray('le', 8),
+    ...mintKeypair.publicKey.toBuffer(),
+    ...new anchor.BN(amount).toArray('le', 8),
+  ]);
+
     //recipient keypair
     const recipientKeypair = anchor.web3.Keypair.generate();
     await provider.connection.confirmTransaction(
@@ -59,10 +60,10 @@ describe("merklewhitelist", () => {
     console.log(`token address: ${tokenAddress}`);
 
     await program.methods.mintTokenToWallet(
-      amount, merkleDistributorPdaBump, index, proof
+      new anchor.BN(amount), new anchor.BN(merkleDistributorPdaBump), new anchor.BN(index), new anchor.BN(proof)
     ).accounts({
       tokenMint: mintKeypair.publicKey,
-      merkleDistributor,
+      merkleDistributor: merkleDistributor,
       recipient: recipientKeypair.publicKey,
       payer: payer.publicKey,
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,
@@ -79,3 +80,7 @@ describe("merklewhitelist", () => {
 //amount,
 //index
 //proof
+
+//pubkey: HirkJEZy8Q3zdUuN55Ci8Gz71Ggb46wpqmodqz1He2jF
+//pubkey: DP7KM2Y4wAGU3RLLVWZ7g1N52aafNRnLvSYDrb6E9siL
+//pubkey: 3hZu5KH5CSAtnfERxbKnFMTRy1VwPkyEphkm2PRfZjTB
