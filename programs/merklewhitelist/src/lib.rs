@@ -41,7 +41,7 @@ pub mod merklewhitelist {
         //check that the minter is a Signer
         require!(minter.is_signer, MerkleError::Unauthorized);
 
-        //a node/leaf in a merkletree
+        //a node/leaf in a merkletree - hash(index, minter.key, amount)
         let node = keccak::hashv(&[
             &index.to_le_bytes(),
             &minter.key().to_bytes(),
@@ -61,7 +61,7 @@ pub mod merklewhitelist {
             to: ctx.accounts.recipient.to_account_info(),
             authority: ctx.accounts.merkle_distributor.to_account_info(),
         };
-        
+        msg!("CPI Accounts Assigned");
         //the token program
         let cpi_program = ctx.accounts.token_program.to_account_info();
         
@@ -86,7 +86,7 @@ pub mod merklewhitelist {
         );
         // anchor's helper function to mint tokens to address
         anchor_spl::token::mint_to(cpi_ctx, amount)?;
-
+        
         let token_distributor = &mut ctx.accounts.merkle_distributor;
         token_distributor.total_amount_minted += amount;
 
@@ -94,6 +94,7 @@ pub mod merklewhitelist {
             token_distributor.total_amount_minted <= token_distributor.max_mint_amount,
             MerkleError::ExceededMaxMint
         );
+        msg!("Token Minted !!!");
         
         Ok(())
     }

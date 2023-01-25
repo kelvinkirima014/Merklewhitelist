@@ -15,7 +15,7 @@ describe("merklewhitelist", () => {
   const payer = provider.wallet as anchor.Wallet;
   console.log(`Payer is: ${payer.publicKey}`);
  
-  //retrieve our Rust program
+  //retrieve our Rust program IDL
   const program = anchor.workspace.Merklewhitelist as Program<Merklewhitelist>;
    //generate a keypair that will represent our token
   const mintKeypair = anchor.web3.Keypair.generate();
@@ -23,25 +23,17 @@ describe("merklewhitelist", () => {
 
   it("Mints a token to a wallet", async () => {
 
-    const allowAddresses = [
-      "ANMC4r582ErAaCrFFJZQ9PhkxtPmFpWFMkoZEEQT1mvk",
-      "GMwbF8rdnipEsvLfwUStnBuZQYoFfPm4aPdqxF615anJ",
-    ];
+    type merkleDistributor = {
 
-    //merkle root
-    const root = getMerkleRoot(allowAddresses);
+    }
 
-    const proof = getMerkleProof(
-      allowAddresses,
-      "GMwbF8rdnipEsvLfwUStnBuZQYoFfPm4aPdqxF615anJ",
-    );
+    let proof: Array<Buffer>;
 
-    const isTreeValid = getMerkleTree(allowAddresses).verify(
-      proof.map((e) => Buffer.from(keccak_256(e))),
-      Buffer.from(keccak_256("GMwbF8rdnipEsvLfwUStnBuZQYoFfPm4aPdqxF615anJ")),
-      Buffer.from(keccak_256(root.toString()))
-    );
-    console.log({ tree: isTreeValid });
+    let amount: number;
+
+    let index: number;
+
+    
     //recipient keypair
     const recipientKeypair = anchor.web3.Keypair.generate();
     await provider.connection.confirmTransaction(
@@ -60,17 +52,14 @@ describe("merklewhitelist", () => {
     );
 
 
-    const amountToMint = 1;
-
     const tokenAddress = await anchor.utils.token.associatedAddress({
       mint: mintKeypair.publicKey,
       owner: recipientKeypair.publicKey,
     });
     console.log(`token address: ${tokenAddress}`);
-  
-    const index = 0;
+
     await program.methods.mintTokenToWallet(
-      new anchor.BN(amountToMint), merkleDistributorPdaBump, index, proof
+      amount, merkleDistributorPdaBump, index, proof
     ).accounts({
       tokenMint: mintKeypair.publicKey,
       merkleDistributor,
