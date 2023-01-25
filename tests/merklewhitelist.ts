@@ -29,11 +29,31 @@ describe("merklewhitelist", () => {
 
     let index: number;
 
+    let treeInfo: any;
+
      const leaf = Buffer.from([
     ...new anchor.BN(index).toArray('le', 8),
     ...mintKeypair.publicKey.toBuffer(),
     ...new anchor.BN(amount).toArray('le', 8),
-  ]);
+    ]);
+
+    const allowAddresses = [
+      "NMC4r582ErAaCrFFJZQ9PhkxtPmFpWFMkoZEEQT1mvk",
+      "HirkJEZy8Q3zdUuN55Ci8Gz71Ggb46wpqmodqz1He2jF",
+      "DP7KM2Y4wAGU3RLLVWZ7g1N52aafNRnLvSYDrb6E9siL",
+      "3hZu5KH5CSAtnfERxbKnFMTRy1VwPkyEphkm2PRfZjTB",
+    ];
+
+    const merkleTree = getMerkleTree(allowAddresses);
+    const matches = merkleTree.verify(
+      proof,
+      leaf,
+      Buffer.from(treeInfo.root),
+    );
+
+    if (!matches) {
+      throw new Error('Merkle proof does not match');
+    }
 
     //recipient keypair
     const recipientKeypair = anchor.web3.Keypair.generate();
@@ -60,7 +80,7 @@ describe("merklewhitelist", () => {
     console.log(`token address: ${tokenAddress}`);
 
     await program.methods.mintTokenToWallet(
-      new anchor.BN(amount), new anchor.BN(merkleDistributorPdaBump), new anchor.BN(index), new anchor.BN(proof)
+      new anchor.BN(merkleDistributorPdaBump), new anchor.BN(amount), new anchor.BN(index), new anchor.BN(proof)
     ).accounts({
       tokenMint: mintKeypair.publicKey,
       merkleDistributor: merkleDistributor,
