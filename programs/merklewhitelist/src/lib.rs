@@ -36,15 +36,15 @@ pub mod merklewhitelist {
         msg!("Start of token mint operation...");
         
         //init ctx variables
-        let minter = &mut ctx.accounts.minter;
+        let token_mint = &mut ctx.accounts.token_mint;
         let token_distributor = &mut ctx.accounts.merkle_distributor;
         //check that the minter is a Signer
-        require!(minter.is_signer, MerkleError::Unauthorized);
+        require!(ctx.accounts.payer.is_signer, MerkleError::Unauthorized);
 
         //a node/leaf in a merkletree - hash(index, minter.key, amount)
         let node = keccak::hashv(&[
             &index.to_le_bytes(),
-            &minter.key().to_bytes(),
+            &token_mint.key().to_bytes(),
             &amount.to_le_bytes(),
         ]);
         //proof, root and leaf
@@ -81,7 +81,7 @@ pub mod merklewhitelist {
         );
         
         require!(
-            ctx.accounts.recipient.owner == minter.key(),
+            ctx.accounts.recipient.owner == ctx.accounts.payer.key(),
             MerkleError::OwnerMismatch
         );
         // anchor's helper function to mint tokens to address
@@ -121,12 +121,12 @@ pub struct MintTokenToWallet<'info> {
         init,
         payer = payer,
         associated_token::mint = token_mint,
-        associated_token::authority = minter,
+        associated_token::authority = payer,
      )]
     pub recipient: Account<'info, TokenAccount>,
      // Who is minting the tokens.
     #[account(address = recipient.owner @ MerkleError::OwnerMismatch)]
-    pub minter: Signer<'info>,
+    //pub minter: Signer<'info>,
     //who's paying for the mint
     #[account(mut)]
     pub payer: Signer<'info>,
