@@ -102,6 +102,28 @@ pub mod merklewhitelist {
 
 }
 
+#[derive(Accounts)]
+pub struct  InitializeDistributor<'info>{
+    pub base: Signer<'info>,
+    #[account(
+    init,
+    seeds = [
+    b"MerkleDistributor".as_ref(),
+    base.key().to_bytes().as_ref()
+    ],
+    space = 8+97,
+    bump,
+    payer = payer
+    )]
+    pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
+
+    /// Payer to create the distributor.
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    /// The [System] program.
+    pub system_program: Program<'info, System>,
+}
 
 #[derive(Accounts)]
 #[instruction(merkle_distributor_pda_bump: u8)]
