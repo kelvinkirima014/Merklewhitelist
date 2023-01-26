@@ -63,10 +63,18 @@ describe("merklewhitelist", () => {
       throw new Error('Merkle proof does not match');
     }
 
-    await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop( mintKeypair.publicKey, 1 * anchor.web3.LAMPORTS_PER_SOL)
+    const airdropSignature = await provider.connection.requestAirdrop(
+      mintKeypair.publicKey,
+      2 * anchor.web3.LAMPORTS_PER_SOL,
     );
-    
+
+    const latestBlockHash = await provider.connection.getLatestBlockhash();
+
+    await provider.connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: airdropSignature,
+    });
     
     const [merkleDistributor, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
