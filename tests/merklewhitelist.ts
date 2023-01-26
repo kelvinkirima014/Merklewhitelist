@@ -11,32 +11,20 @@ describe("merklewhitelist", () => {
   //configure the client to use the local cluster
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
+
   //wallet to pay for account creations
   const payer = provider.wallet as anchor.Wallet;
   console.log(`Payer is: ${payer.publicKey}`);
  
   //retrieve our Rust program IDL
   const program = anchor.workspace.Merklewhitelist as Program<Merklewhitelist>;
+
    //generate a keypair that will represent our token
   const mintKeypair = anchor.web3.Keypair.generate();
   console.log(`New token: ${mintKeypair.publicKey}`);
 
   it("Mints a token to a wallet", async () => {
-
-    let proof: Array<Buffer>;
-
-    let amount: number;
-
-    let index: number;
-
-    let treeInfo: any;
-
-     const leaf = Buffer.from([
-    ...new anchor.BN(index).toArray('le', 8),
-    ...mintKeypair.publicKey.toBuffer(),
-    ...new anchor.BN(amount).toArray('le', 8),
-    ]);
-
+   
     const allowAddresses = [
       "NMC4r582ErAaCrFFJZQ9PhkxtPmFpWFMkoZEEQT1mvk",
       "HirkJEZy8Q3zdUuN55Ci8Gz71Ggb46wpqmodqz1He2jF",
@@ -44,23 +32,41 @@ describe("merklewhitelist", () => {
       "3hZu5KH5CSAtnfERxbKnFMTRy1VwPkyEphkm2PRfZjTB",
     ];
 
+
+    let amount: number;
+
+    let index: number;
+    
+    const leaf = Buffer.from([
+    ...new anchor.BN(index).toArray('le', 8),
+    ...mintKeypair.publicKey.toBuffer(),
+    ...new anchor.BN(amount).toArray('le', 8),
+    ]);
+
     const merkleTree = getMerkleTree(allowAddresses);
+
+    const root = getMerkleRoot(allowAddresses);
+
+    const proof = getMerkleProof(allowAddresses, leaf, index);
+
+    console.log("whay!");
+
     const matches = merkleTree.verify(
       proof,
       leaf,
-      Buffer.from(treeInfo.root),
+      Buffer.from(root),
     );
+
+    console.log("whya!!");
 
     if (!matches) {
       throw new Error('Merkle proof does not match');
     }
 
-    //recipient keypair
-    const recipientKeypair = anchor.web3.Keypair.generate();
     await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop( recipientKeypair.publicKey, 1 * anchor.web3.LAMPORTS_PER_SOL)
+      await provider.connection.requestAirdrop( mintKeypair.publicKey, 1 * anchor.web3.LAMPORTS_PER_SOL)
     );
-    console.log(`Recipient pubkey: ${recipientKeypair.publicKey}`);
+    
     
     const [merkleDistributor, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -75,7 +81,7 @@ describe("merklewhitelist", () => {
 
     const tokenAddress = await anchor.utils.token.associatedAddress({
       mint: mintKeypair.publicKey,
-      owner: recipientKeypair.publicKey,
+      owner: payer.publicKey,
     });
     console.log(`token address: ${tokenAddress}`);
 
@@ -84,7 +90,7 @@ describe("merklewhitelist", () => {
     ).accounts({
       tokenMint: mintKeypair.publicKey,
       merkleDistributor: merkleDistributor,
-      recipient: recipientKeypair.publicKey,
+      recipient: tokenAddress,
       payer: payer.publicKey,
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,
       systemProgram: anchor.web3.SystemProgram.programId,
