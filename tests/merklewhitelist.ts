@@ -22,7 +22,9 @@ describe("merklewhitelist", () => {
 
   //generate a keypair that will represent our token
   const mintKeypair = anchor.web3.Keypair.generate();
-  console.log(`New token: ${mintKeypair.publicKey}`);
+  console.log(`New token public key: ${mintKeypair.publicKey}`);
+
+  const merkleDistributor = anchor.web3.Keypair.generate();
 
   it("Mints a token to a wallet", async () => {
    
@@ -72,23 +74,23 @@ describe("merklewhitelist", () => {
       lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
       signature: airdropSignature,
     });
-    
-    const [merkleDistributor, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
+   
+    const [_merkleDistributorPda, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         //We need to reference both objects as a Byte Buffer, which is what
         //Solana's find_program_address requires to find the PDA.
         Buffer.from("MerkleTokenDistributor"),
-        mintKeypair.publicKey.toBuffer(),
+        merkleDistributor.publicKey.toBuffer(),
       ],
       program.programId,
     );
 
 
-    const tokenAddress = await anchor.utils.token.associatedAddress({
+    const recipientAddress = await anchor.utils.token.associatedAddress({
       mint: mintKeypair.publicKey,
-      owner: payer.publicKey,
+      owner: merkleDistributor.publicKey,
     });
-    console.log(`token address: ${tokenAddress}`);
+    console.log(`token address: ${recipientAddress}`);
 
     await program.methods.mintTokenToWallet(
       merkleDistributorPdaBump,
@@ -97,8 +99,8 @@ describe("merklewhitelist", () => {
       proof,
     ).accounts({
       tokenMint: mintKeypair.publicKey,
-      merkleDistributor: merkleDistributor,
-      recipient: tokenAddress,
+      merkleDistributor: merkleDistributor.publicKey,
+      recipient: recipientAddress,
       payer: payer.publicKey,
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,
       systemProgram: anchor.web3.SystemProgram.programId,
@@ -108,13 +110,7 @@ describe("merklewhitelist", () => {
     .signers([payer.payer])
     .rpc();
 
+
   });
 });
-// merkleDistributorPdaBump,
-//amount,
-//index
-//proof
 
-//pubkey: HirkJEZy8Q3zdUuN55Ci8Gz71Ggb46wpqmodqz1He2jF
-//pubkey: DP7KM2Y4wAGU3RLLVWZ7g1N52aafNRnLvSYDrb6E9siL
-//pubkey: 3hZu5KH5CSAtnfERxbKnFMTRy1VwPkyEphkm2PRfZjTB

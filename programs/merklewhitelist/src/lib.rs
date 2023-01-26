@@ -68,7 +68,8 @@ pub mod merklewhitelist {
         //PDA seeds
         let seeds = [
             b"MerkleTokenDistributor".as_ref(),
-            &ctx.accounts.merkle_distributor.base.to_bytes(),
+            //&ctx.accounts.merkle_distributor.base.to_bytes(),
+            &ctx.accounts.merkle_distributor.key().to_bytes(),
             &[merkle_distributor_pda_bump],
         ];
         let seeds_binding = [&seeds[..]];
@@ -81,7 +82,7 @@ pub mod merklewhitelist {
         );
         
         require!(
-            ctx.accounts.recipient.owner == ctx.accounts.payer.key(),
+            ctx.accounts.recipient.owner == ctx.accounts.merkle_distributor.key(),
             MerkleError::OwnerMismatch
         );
         // anchor's helper function to mint tokens to address
@@ -101,19 +102,36 @@ pub mod merklewhitelist {
 
 }
 
+
 #[derive(Accounts)]
 #[instruction(merkle_distributor_pda_bump: u8)]
 pub struct MintTokenToWallet<'info> {
     //the token we're minting
-    #[account(mut)]
-    pub token_mint: Account<'info, Mint>,
-    //the merkle distributor
+    ///CHECK: SAFE
     #[account(
+        mut,
+       //mint::authority = merkle_distributor.key(),
+    )]
+    pub token_mint: UncheckedAccount<'info>,
+    //the merkle distributor
+   
+    // #[account(
+    //     init,
+    //     payer = payer,
+    //     space = 8 + 8 + 8 + 8,
+    //     seeds = [
+    //         b"MerkleTokenDistributor", 
+    //         merkle_distributor.key().to_bytes().as_ref(),
+    //     ],
+    //     bump
+    // )]
+    #[account(
+        mut,
         seeds = [
-            b"MerkleTokenDistributor", 
-            &merkle_distributor.base.to_bytes(),
+             b"MerkleTokenDistributor", 
+             merkle_distributor.key().to_bytes().as_ref(),
         ],
-        bump = merkle_distributor_pda_bump
+        bump = merkle_distributor_pda_bump,
     )]
     pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
     //account to send the minted tokens to
@@ -121,11 +139,11 @@ pub struct MintTokenToWallet<'info> {
         init,
         payer = payer,
         associated_token::mint = token_mint,
-        associated_token::authority = payer,
+        associated_token::authority = merkle_distributor,
      )]
     pub recipient: Account<'info, TokenAccount>,
      // Who is minting the tokens.
-    #[account(address = recipient.owner @ MerkleError::OwnerMismatch)]
+    //#[account(address = recipient.owner @ MerkleError::OwnerMismatch)]
     //pub minter: Signer<'info>,
     //who's paying for the mint
     #[account(mut)]
@@ -140,7 +158,7 @@ pub struct MintTokenToWallet<'info> {
 #[derive(Default)]
 pub struct MerkleTokenDistributor {
     //base key used to derive PDA
-    pub base: Pubkey,
+  //  pub base: Pubkey,
     //256-bit Merkle root
     pub root: [u8; 32],
     //total token amount minted
