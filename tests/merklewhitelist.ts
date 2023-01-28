@@ -88,7 +88,7 @@ describe("merklewhitelist", () => {
 
     const recipientAddress = await anchor.utils.token.associatedAddress({
       mint: mintKeypair.publicKey,
-      owner: merkleDistributor,
+      owner: payer.publicKey,
     });
     console.log(`token address: ${recipientAddress}`);
 
