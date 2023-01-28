@@ -111,15 +111,9 @@ describe("merklewhitelist", () => {
         payer.publicKey,
         payer.publicKey,
       ),
-      createAssociatedTokenAccountInstruction(
-        payer.publicKey,
-        recipientAddress,
-        payer.publicKey,
-        mintKeypair.publicKey,
-      ),
-      );
+    );
 
-      const createTx = await anchor.AnchorProvider.env().sendAndConfirm(
+    const createTx = await anchor.AnchorProvider.env().sendAndConfirm(
       mint_tx, [mintKeypair]
     );
      console.log("Create transaction: ", createTx);
