@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::keccak};
-use anchor_spl::{token::{Token, TokenAccount, MintTo}, associated_token:: AssociatedToken};
+use anchor_spl::{token::{Token, TokenAccount, MintTo, Mint}, associated_token:: AssociatedToken};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -148,7 +148,7 @@ pub struct MintTokenToWallet<'info> {
     #[account(
         mut,
     )]
-    pub mint: UncheckedAccount<'info>,  
+    pub mint: Account<'info, Mint>,  
     #[account(
         init,
         payer = payer,
