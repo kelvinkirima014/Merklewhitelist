@@ -55,20 +55,21 @@ pub mod merklewhitelist {
         msg!("Start of token mint operation...");
         
         //init ctx variables
-        let mint = &mut ctx.accounts.mint;
+       // let mint = &mut ctx.accounts.mint;
+        let payer = &mut ctx.accounts.payer;
         let token_distributor = &mut ctx.accounts.merkle_distributor;
         //check that the minter is a Signer
-        require!(ctx.accounts.payer.is_signer, MerkleError::Unauthorized);
+        //require!(ctx.accounts.payer.is_signer, MerkleError::Unauthorized);
 
         //a node/leaf in a merkletree - hash(index, minter.key, amount)
-        let node = keccak::hashv(&[
+        let leaf = keccak::hashv(&[
             &index.to_le_bytes(),
-            &mint.key().to_bytes(),
+            &payer.key().to_bytes(),
             &amount.to_le_bytes(),
         ]);
         //proof, root and leaf
         require!(
-            merkle_verify(proof, token_distributor.root, node.0),
+            merkle_verify(proof, token_distributor.root, leaf.0),
             MerkleError::InvalidProof
         );
 

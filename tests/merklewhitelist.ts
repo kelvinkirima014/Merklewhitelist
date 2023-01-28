@@ -55,7 +55,7 @@ describe("merklewhitelist", () => {
     
     const leaf = Buffer.from([
     ...new BN(index).toArray('le', 8),
-    ...mintKeypair.publicKey.toBuffer(),
+    ...payer.publicKey.toBuffer(),
     ...new BN(amount).toArray('le', 8),
     ]);
 
