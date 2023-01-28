@@ -4,6 +4,7 @@
         "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
     },
     "dependencies": {
+        "@lumina-dev/test": "^0.0.9",
         "@metaplex-foundation/js": "^0.17.12",
         "@noble/hashes": "^1.1.5",
         "@project-serum/anchor": "^0.25.0",

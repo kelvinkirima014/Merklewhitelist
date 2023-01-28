@@ -8,6 +8,21 @@ import {
 } from "@metaplex-foundation/js";
 import BN from 'bn.js';
 import { keccak_256 } from "@noble/hashes/sha3";
+import {
+  TOKEN_PROGRAM_ID,
+  MINT_SIZE,
+  createAssociatedTokenAccount,
+  getAssociatedTokenAddress,
+  createInitializeMint2Instruction,
+  createInitializeMintInstruction,
+  createAssociatedTokenAccountInstruction,
+  AccountState,
+} from "@solana/spl-token";
+
+import lumina from '@lumina-dev/test';
+
+//lumina();
+
 describe("merklewhitelist", () => {
   //configure the client to use the local cluster
   const provider = anchor.AnchorProvider.env();
@@ -24,10 +39,8 @@ describe("merklewhitelist", () => {
   const mintKeypair = anchor.web3.Keypair.generate();
   console.log(`New token public key: ${mintKeypair.publicKey}`);
 
-  const merkleDistributor = anchor.web3.Keypair.generate();
-
   it("Mints a token to a wallet", async () => {
-   
+    
     const allowAddresses = [
       "NMC4r582ErAaCrFFJZQ9PhkxtPmFpWFMkoZEEQT1mvk",
       "HirkJEZy8Q3zdUuN55Ci8Gz71Ggb46wpqmodqz1He2jF",
@@ -75,12 +88,12 @@ describe("merklewhitelist", () => {
       signature: airdropSignature,
     });
    
-    const [_merkleDistributorPda, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [merkleDistributor, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         //We need to reference both objects as a Byte Buffer, which is what
         //Solana's find_program_address requires to find the PDA.
         Buffer.from("MerkleTokenDistributor"),
-        merkleDistributor.publicKey.toBuffer(),
+        payer.publicKey.toBuffer(),
       ],
       program.programId,
     );
@@ -88,7 +101,7 @@ describe("merklewhitelist", () => {
 
     const recipientAddress = await anchor.utils.token.associatedAddress({
       mint: mintKeypair.publicKey,
-      owner: merkleDistributor.publicKey,
+      owner: payer.publicKey,
     });
     console.log(`token address: ${recipientAddress}`);
 
@@ -98,8 +111,8 @@ describe("merklewhitelist", () => {
       new BN(amount),
       proof,
     ).accounts({
-      tokenMint: mintKeypair.publicKey,
-      merkleDistributor: merkleDistributor.publicKey,
+      mint: mintKeypair.publicKey,
+      merkleDistributor: merkleDistributor,
       recipient: recipientAddress,
       payer: payer.publicKey,
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,
