@@ -30,7 +30,7 @@ describe("merklewhitelist", () => {
 
   //wallet to pay for account creations
   const payer = provider.wallet as anchor.Wallet;
-  console.log(`Payer is: ${payer.publicKey}`);
+  //console.log(`Payer is: ${payer.publicKey}`);
  
   //retrieve our Rust program IDL
   const program = anchor.workspace.Merklewhitelist as Program<Merklewhitelist>;
@@ -75,19 +75,6 @@ describe("merklewhitelist", () => {
     //   throw new Error('Merkle proof does not match');
     // }
 
-    const airdropSignature = await provider.connection.requestAirdrop(
-      mintKeypair.publicKey,
-      2 * anchor.web3.LAMPORTS_PER_SOL,
-    );
-
-    const latestBlockHash = await provider.connection.getLatestBlockhash();
-
-    await provider.connection.confirmTransaction({
-      blockhash: latestBlockHash.blockhash,
-      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-      signature: airdropSignature,
-    });
-   
     const [merkleDistributor, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         //We need to reference both objects as a Byte Buffer, which is what
@@ -105,6 +92,53 @@ describe("merklewhitelist", () => {
     });
     console.log(`token address: ${recipientAddress}`);
 
+      const lamports: number = await program.provider.connection.getMinimumBalanceForRentExemption(
+      MINT_SIZE
+    );
+
+      const mint_tx = new anchor.web3.Transaction().add(
+      //create an account from the mint keypair we created
+      anchor.web3.SystemProgram.createAccount({
+        fromPubkey: payer.publicKey,
+        newAccountPubkey: mintKeypair.publicKey,
+        space: MINT_SIZE,
+        programId: TOKEN_PROGRAM_ID,
+        lamports
+      }),
+      createInitializeMintInstruction(
+        mintKeypair.publicKey,
+        0,
+        payer.publicKey,
+        payer.publicKey,
+      ),
+      createAssociatedTokenAccountInstruction(
+        payer.publicKey,
+        recipientAddress,
+        payer.publicKey,
+        mintKeypair.publicKey,
+      ),
+      );
+
+      const createTx = await anchor.AnchorProvider.env().sendAndConfirm(
+      mint_tx, [mintKeypair]
+    );
+     console.log("Create transaction: ", createTx);
+      
+
+    const airdropSignature = await provider.connection.requestAirdrop(
+      mintKeypair.publicKey,
+      2 * anchor.web3.LAMPORTS_PER_SOL,
+    );
+
+    const latestBlockHash = await provider.connection.getLatestBlockhash();
+
+    await provider.connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: airdropSignature,
+    });
+   
+    
     await program.methods.mintTokenToWallet(
       merkleDistributorPdaBump,
       new BN(index),

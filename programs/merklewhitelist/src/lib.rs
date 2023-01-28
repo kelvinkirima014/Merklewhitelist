@@ -26,25 +26,6 @@ fn merkle_verify(
 pub mod merklewhitelist {
     use super::*;
 
-    pub fn initialize_distributor(
-        ctx: Context<InitializeDistributor>,
-        _bump: u8,
-        root: [u8; 32],
-    ) -> Result<()> {
-
-        let merkle_distributor = &mut ctx.accounts.merkle_distributor;
-
-        merkle_distributor.base = ctx.accounts.base.key();
-        merkle_distributor.bump = *ctx
-            .bumps
-            .get("distributor")
-            .ok_or(MerkleError::Unauthorized)?;
-
-        merkle_distributor.root = root;
-      
-        Ok(())
-    }
-
     pub fn mint_token_to_wallet(
         ctx: Context<MintTokenToWallet>, 
         merkle_distributor_pda_bump: u8,
@@ -122,24 +103,6 @@ pub mod merklewhitelist {
 
 }
 
-#[derive(Accounts)]
-pub struct  InitializeDistributor<'info>{
-    pub base: Signer<'info>,
-    #[account(
-    init,
-    seeds = [
-    b"MerkleDistributor".as_ref(),
-    base.key().to_bytes().as_ref()
-    ],
-    space = 8+97,
-    bump,
-    payer = payer
-    )]
-    pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
-    #[account(mut)]
-    pub payer: Signer<'info>,
-    pub system_program: Program<'info, System>,
-}
 
 #[derive(Accounts)]
 #[instruction(merkle_distributor_pda_bump: u8)]
@@ -175,8 +138,6 @@ pub struct MintTokenToWallet<'info> {
 #[account]
 #[derive(Default)]
 pub struct MerkleTokenDistributor {
-    //base key used to derive PDA
-    pub base: Pubkey,
     //256-bit Merkle root
     pub root: [u8; 32],
     /// Bump seed.
