@@ -144,10 +144,7 @@ pub struct  InitializeDistributor<'info>{
 #[derive(Accounts)]
 #[instruction(merkle_distributor_pda_bump: u8)]
 pub struct MintTokenToWallet<'info> {
-    ///CHECK: SAFE
-    #[account(
-        mut,
-    )]
+    #[account(mut)]
     pub mint: Account<'info, Mint>,  
     #[account(
         init,
