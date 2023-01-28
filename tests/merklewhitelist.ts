@@ -7,16 +7,10 @@ import {
   getMerkleTree,
 } from "@metaplex-foundation/js";
 import BN from 'bn.js';
-import { keccak_256 } from "@noble/hashes/sha3";
 import {
   TOKEN_PROGRAM_ID,
   MINT_SIZE,
-  createAssociatedTokenAccount,
-  getAssociatedTokenAddress,
-  createInitializeMint2Instruction,
   createInitializeMintInstruction,
-  createAssociatedTokenAccountInstruction,
-  AccountState,
 } from "@solana/spl-token";
 
 describe("merklewhitelist", () => {
@@ -26,7 +20,6 @@ describe("merklewhitelist", () => {
 
   //wallet to pay for account creations
   const payer = provider.wallet as anchor.Wallet;
-  //console.log(`Payer is: ${payer.publicKey}`);
  
   //retrieve our Rust program IDL
   const program = anchor.workspace.Merklewhitelist as Program<Merklewhitelist>;
@@ -38,10 +31,10 @@ describe("merklewhitelist", () => {
   it("Mints a token to a wallet", async () => {
     
     const allowAddresses = [
-      "NMC4r582ErAaCrFFJZQ9PhkxtPmFpWFMkoZEEQT1mvk",
-      "HirkJEZy8Q3zdUuN55Ci8Gz71Ggb46wpqmodqz1He2jF",
-      "DP7KM2Y4wAGU3RLLVWZ7g1N52aafNRnLvSYDrb6E9siL",
-      "3hZu5KH5CSAtnfERxbKnFMTRy1VwPkyEphkm2PRfZjTB",
+        "NMC4r582ErAaCrFFJZQ9PhkxtPmFpWFMkoZEEQT1mvk",
+        "HirkJEZy8Q3zdUuN55Ci8Gz71Ggb46wpqmodqz1He2jF",
+        "DP7KM2Y4wAGU3RLLVWZ7g1N52aafNRnLvSYDrb6E9siL",
+        "3hZu5KH5CSAtnfERxbKnFMTRy1VwPkyEphkm2PRfZjTB",
     ];
 
 
@@ -80,19 +73,19 @@ describe("merklewhitelist", () => {
       ],
       program.programId,
     );
-
+    console.log(`merkle distributor: ${merkleDistributor}`);
 
     const recipientAddress = await anchor.utils.token.associatedAddress({
       mint: mintKeypair.publicKey,
       owner: payer.publicKey,
     });
-    console.log(`token address: ${recipientAddress}`);
+    console.log(`Associated token address: ${recipientAddress}`);
 
-      const lamports: number = await program.provider.connection.getMinimumBalanceForRentExemption(
+    const lamports: number = await program.provider.connection.getMinimumBalanceForRentExemption(
       MINT_SIZE
     );
 
-      const mint_tx = new anchor.web3.Transaction().add(
+    const mint_tx = new anchor.web3.Transaction().add(
       //create an account from the mint keypair we created
       anchor.web3.SystemProgram.createAccount({
         fromPubkey: payer.publicKey,
@@ -108,7 +101,7 @@ describe("merklewhitelist", () => {
         payer.publicKey,
       ),
     );
-
+   
     const createTx = await anchor.AnchorProvider.env().sendAndConfirm(
       mint_tx, [mintKeypair]
     );
@@ -119,6 +112,7 @@ describe("merklewhitelist", () => {
       mintKeypair.publicKey,
       2 * anchor.web3.LAMPORTS_PER_SOL,
     );
+    console.log("airdrop sx", airdropSignature);
 
     const latestBlockHash = await provider.connection.getLatestBlockhash();
 
@@ -127,7 +121,6 @@ describe("merklewhitelist", () => {
       lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
       signature: airdropSignature,
     });
-   
     
     await program.methods.mintTokenToWallet(
       merkleDistributorPdaBump,
