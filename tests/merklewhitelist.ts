@@ -19,10 +19,6 @@ import {
   AccountState,
 } from "@solana/spl-token";
 
-import lumina from '@lumina-dev/test';
-
-//lumina();
-
 describe("merklewhitelist", () => {
   //configure the client to use the local cluster
   const provider = anchor.AnchorProvider.env();
@@ -71,9 +67,9 @@ describe("merklewhitelist", () => {
       Buffer.from(root),
     );
 
-    // if (!matches) {
-    //   throw new Error('Merkle proof does not match');
-    // }
+    if (!matches) {
+      throw new Error('Merkle proof does not match');
+    }
 
     const [merkleDistributor, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
