@@ -36,11 +36,10 @@ describe("merklewhitelist", () => {
         "DP7KM2Y4wAGU3RLLVWZ7g1N52aafNRnLvSYDrb6E9siL",
         "3hZu5KH5CSAtnfERxbKnFMTRy1VwPkyEphkm2PRfZjTB",
     ];
-
+    
+    let index: number;
 
     let amount: number;
-
-    let index: number;
     
     const leaf = Buffer.from([
     ...new BN(index).toArray('le', 8),
@@ -51,8 +50,10 @@ describe("merklewhitelist", () => {
     const merkleTree = getMerkleTree(allowAddresses);
 
     const root = getMerkleRoot(allowAddresses);
+    console.log("root: ", root);
 
     const proof = getMerkleProof(allowAddresses, leaf, index);
+    console.log("proof: ", proof)
 
     const matches = merkleTree.verify(
       proof,
