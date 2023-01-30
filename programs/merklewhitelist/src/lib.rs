@@ -26,11 +26,17 @@ fn merkle_verify(
 pub mod merklewhitelist {
     use super::*;
 
+    pub fn init_distributor(ctx: Context<InitDistributor>, bump: u8) -> Result<()>{
+        let merkle_distributor = &mut ctx.accounts.merkle_distributor;
+        merkle_distributor.bump = bump;
+        Ok(())
+    }
+
     pub fn mint_token_to_wallet(
         ctx: Context<MintTokenToWallet>, 
         merkle_distributor_pda_bump: u8,
-        amount: u64,
         index: u64,
+        amount: u64,
         proof: Vec<[u8; 32]>,
     ) -> Result<()> {
         msg!("Start of token mint operation...");
@@ -41,17 +47,17 @@ pub mod merklewhitelist {
         //check that the owner is a Signer
         require!(ctx.accounts.payer.is_signer, MerkleError::Unauthorized);
 
-        //a node/leaf in a merkletree - hash(index, minter.key, amount)
+        //a node/leaf in a merkletree - hash(index, payer.key, amount)
         let leaf = keccak::hashv(&[
             &index.to_le_bytes(),
             &payer.key().to_bytes(),
             &amount.to_le_bytes(),
         ]);
         //proof, root and leaf
-        require!(
-            merkle_verify(proof, token_distributor.root, leaf.0),
-            MerkleError::InvalidProof
-        );
+        // require!(
+        //     merkle_verify(proof, token_distributor.root, leaf.0),
+        //     MerkleError::InvalidProof
+        // );
 
         msg!("Mint: {}", ctx.accounts.mint.to_account_info().key());
         msg!("Token receiver address: {}", ctx.accounts.recipient.to_account_info().key());
@@ -104,14 +110,30 @@ pub mod merklewhitelist {
 
 
 #[derive(Accounts)]
+pub struct InitDistributor<'info> {
+    #[account(
+        init,
+         seeds = [
+            b"MerkleTokenDistributor".as_ref(),
+            payer.key().to_bytes().as_ref()
+        ],
+        bump,
+        space = 8 + 99,
+        payer = payer,
+    )]
+    pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 #[instruction(merkle_distributor_pda_bump: u8)]
 pub struct MintTokenToWallet<'info> {
     #[account(mut)]
     pub mint: Account<'info, Mint>,  
     #[account(
-        init,
-        payer = payer,
-        space =  8 + 8 + 8 + 8 + 98,
+        mut,
         seeds = [
              b"MerkleTokenDistributor", 
              payer.key().to_bytes().as_ref(),
