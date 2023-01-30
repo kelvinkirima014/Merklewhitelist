@@ -84,9 +84,9 @@ describe("merklewhitelist", () => {
       Buffer.from(root),
     );
 
-    // if (!matches) {
-    //   throw new Error('Merkle proof does not match');
-    // }
+    if (!matches) {
+      throw new Error('Merkle proof does not match');
+    }
 
     const [merkleDistributor, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
       [

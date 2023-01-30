@@ -54,10 +54,10 @@ pub mod merklewhitelist {
             &amount.to_le_bytes(),
         ]);
         //proof, root and leaf
-        // require!(
-        //     merkle_verify(proof, token_distributor.root, leaf.0),
-        //     MerkleError::InvalidProof
-        // );
+        require!(
+            merkle_verify(proof, token_distributor.root, leaf.0),
+            MerkleError::InvalidProof
+        );
 
         msg!("Mint: {}", ctx.accounts.mint.to_account_info().key());
         msg!("Token receiver address: {}", ctx.accounts.recipient.to_account_info().key());
