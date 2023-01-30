@@ -48,7 +48,7 @@ describe("merklewhitelist", () => {
     })
     .signers([payer.payer])
     .rpc();
-    console.log("Merkle distributor succesfully initialized!");
+      console.log("Merkle distributor succesfully initialized!");
   });
   
   it("Mints a token to a wallet", async () => {
@@ -88,10 +88,9 @@ describe("merklewhitelist", () => {
       throw new Error('Merkle proof does not match');
     }
 
+    //PDA
     const [merkleDistributor, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
-        //We need to reference both objects as a Byte Buffer, which is what
-        //Solana's find_program_address requires to find the PDA.
         Buffer.from("MerkleTokenDistributor"),
         payer.publicKey.toBuffer(),
       ],
@@ -99,6 +98,7 @@ describe("merklewhitelist", () => {
     );
     console.log(`merkle distributor: ${merkleDistributor}`);
 
+    //ATA
     const recipientAddress = await anchor.utils.token.associatedAddress({
       mint: mintKeypair.publicKey,
       owner: payer.publicKey,

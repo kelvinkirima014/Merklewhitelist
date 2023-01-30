@@ -74,7 +74,6 @@ pub mod merklewhitelist {
         //PDA seeds
         let seeds = [
             b"MerkleTokenDistributor".as_ref(),
-            //&ctx.accounts.merkle_distributor.base.to_bytes(),
             &ctx.accounts.merkle_distributor.key().to_bytes(),
             &[merkle_distributor_pda_bump],
         ];
@@ -128,7 +127,6 @@ pub struct InitDistributor<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(merkle_distributor_pda_bump: u8)]
 pub struct MintTokenToWallet<'info> {
     #[account(mut)]
     pub mint: Account<'info, Mint>,  
