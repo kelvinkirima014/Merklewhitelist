@@ -1,19 +1,18 @@
 use anchor_lang::{prelude::*, solana_program::keccak};
-use anchor_spl::{token::{Token, TokenAccount, MintTo, Mint}, associated_token:: AssociatedToken};
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{Mint, MintTo, Token, TokenAccount},
+};
 
 declare_id!("5oKxBtfSUuyDQYQx3bMVpFTMZDJufPaKmtr8YnJSwpme");
 
-fn merkle_verify(
-    proof: [u8; 32],
-    root: [u8; 32],
-    leaf: [u8; 32],
-) -> bool{
+fn merkle_verify(proof: [u8; 32], root: [u8; 32], leaf: [u8; 32]) -> bool {
     let mut computed_hash = leaf;
-    for proof_element in proof.into_iter(){
+    for proof_element in proof.into_iter() {
         if computed_hash == proof {
             computed_hash = keccak::hashv(&[&computed_hash, &[proof_element]]).0;
-         }
-     }
+        }
+    }
     computed_hash == root
 }
 
@@ -52,8 +51,7 @@ pub mod merklewhitelist {
         pub system_program: Program<'info, System>,
     }
 
-
-    pub fn init_distributor(ctx: Context<InitDistributor>, bump: u8) -> Result<()>{
+    pub fn init_distributor(ctx: Context<InitDistributor>, bump: u8) -> Result<()> {
         let merkle_distributor = &mut ctx.accounts.merkle_distributor;
         merkle_distributor.bump = bump;
         Ok(())
@@ -62,7 +60,7 @@ pub mod merklewhitelist {
     #[derive(Accounts)]
     pub struct MintTokenToWallet<'info> {
         #[account(mut)]
-        pub mint: Account<'info, Mint>,  
+        pub mint: Account<'info, Mint>,
         #[account(
             mut,
             seeds = [
@@ -85,15 +83,15 @@ pub mod merklewhitelist {
         pub system_program: Program<'info, System>,
         pub associated_token_program: Program<'info, AssociatedToken>,
         pub token_program: Program<'info, Token>,
-}
+    }
 
     pub fn mint_token_to_wallet(
-        ctx: Context<MintTokenToWallet>, 
+        ctx: Context<MintTokenToWallet>,
         merkle_distributor_pda_bump: u8,
         amount: u64,
     ) -> Result<()> {
         msg!("Start of token mint operation...");
-        
+
         //init ctx variables
         let payer = &ctx.accounts.payer;
         let token_distributor = &mut ctx.accounts.merkle_distributor;
@@ -102,17 +100,18 @@ pub mod merklewhitelist {
 
         let proof = keccak::hashv(&[&payer.key().to_bytes()]);
         //a node/leaf in a merkletree - hash(payer.key)
-        let mut leaf = keccak::hashv(&[
-            &payer.key().to_bytes(),
-        ]);
+        let mut leaf = keccak::hashv(&[&payer.key().to_bytes()]);
         leaf.0 = token_distributor.root;
         require!(
             merkle_verify(proof.0, token_distributor.root, leaf.0),
-            MerkleError::InvalidProof, 
+            MerkleError::InvalidProof,
         );
 
         msg!("Mint: {}", ctx.accounts.mint.to_account_info().key());
-        msg!("Token receiver address: {}", ctx.accounts.recipient.to_account_info().key());
+        msg!(
+            "Token receiver address: {}",
+            ctx.accounts.recipient.to_account_info().key()
+        );
         //accounts needed for the mint
         let cpi_accounts = MintTo {
             mint: ctx.accounts.mint.to_account_info(),
@@ -122,7 +121,7 @@ pub mod merklewhitelist {
         msg!("CPI Accounts Assigned");
         //the token program
         let cpi_program = ctx.accounts.token_program.to_account_info();
-        
+
         //PDA seeds
         let seeds = [
             b"MerkleTokenDistributor".as_ref(),
@@ -132,19 +131,15 @@ pub mod merklewhitelist {
         let seeds_binding = [&seeds[..]];
 
         //create the CPI context
-        let cpi_ctx = CpiContext::new_with_signer(
-            cpi_program,
-            cpi_accounts,
-            &seeds_binding
-        );
-        
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, &seeds_binding);
+
         require!(
             ctx.accounts.recipient.owner == ctx.accounts.payer.key(),
             MerkleError::OwnerMismatch
         );
         // anchor's helper function to mint tokens to address
         anchor_spl::token::mint_to(cpi_ctx, amount)?;
-        
+
         let token_distributor = &mut ctx.accounts.merkle_distributor;
         token_distributor.total_amount_minted += amount;
 
@@ -153,12 +148,10 @@ pub mod merklewhitelist {
             MerkleError::ExceededMaxMint
         );
         msg!("Token Minted !!!");
-        
+
         Ok(())
     }
-
 }
-
 
 #[error_code]
 pub enum MerkleError {
@@ -166,10 +159,8 @@ pub enum MerkleError {
     InvalidProof,
     #[msg("Account is not authorized to execute this instruction")]
     Unauthorized,
-     #[msg("Token account owner did not match intended owner")]
+    #[msg("Token account owner did not match intended owner")]
     OwnerMismatch,
     #[msg("Exceeded maximum mint amount.")]
     ExceededMaxMint,
 }
-
-
