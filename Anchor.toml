@@ -2,13 +2,13 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-merklewhitelist = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+merklewhitelist = "5oKxBtfSUuyDQYQx3bMVpFTMZDJufPaKmtr8YnJSwpme"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "/home/0xAckerman/.config/solana/id.json"
 
 [scripts]

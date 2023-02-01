@@ -1,30 +1,57 @@
 use anchor_lang::{prelude::*, solana_program::keccak};
 use anchor_spl::{token::{Token, TokenAccount, MintTo, Mint}, associated_token:: AssociatedToken};
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("5oKxBtfSUuyDQYQx3bMVpFTMZDJufPaKmtr8YnJSwpme");
 
 fn merkle_verify(
-    proof: Vec<[u8; 32]>,
+    proof: [u8; 32],
     root: [u8; 32],
     leaf: [u8; 32],
 ) -> bool{
     let mut computed_hash = leaf;
     for proof_element in proof.into_iter(){
-        if computed_hash <= proof_element {
-            //hash(current computed_hash, current element of proof)
-            computed_hash = keccak::hashv(&[&computed_hash, &proof_element]).0;
-        } else {
-            //hash (current element of proof, current computed hash)
-            computed_hash = keccak::hashv(&[&proof_element, &computed_hash]).0;
-        }
-    }
+        if computed_hash == proof {
+            computed_hash = keccak::hashv(&[&computed_hash, &[proof_element]]).0;
+         }
+     }
     computed_hash == root
-
 }
 
 #[program]
 pub mod merklewhitelist {
     use super::*;
+
+    #[account]
+    #[derive(Default)]
+    pub struct MerkleTokenDistributor {
+        //256-bit Merkle root
+        pub root: [u8; 32],
+        /// Bump seed.
+        pub bump: u8,
+        //total token amount minted
+        pub total_amount_minted: u64,
+        //MAX num of tokens that can be minted
+        pub max_mint_amount: u64,
+    }
+
+    #[derive(Accounts)]
+    pub struct InitDistributor<'info> {
+        #[account(
+            init,
+            seeds = [
+                b"MerkleTokenDistributor".as_ref(),
+                payer.key().to_bytes().as_ref()
+            ],
+            bump,
+            space = 8 + 99 + 99,
+            payer = payer,
+        )]
+        pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
+        #[account(mut)]
+        pub payer: Signer<'info>,
+        pub system_program: Program<'info, System>,
+    }
+
 
     pub fn init_distributor(ctx: Context<InitDistributor>, bump: u8) -> Result<()>{
         let merkle_distributor = &mut ctx.accounts.merkle_distributor;
@@ -32,12 +59,38 @@ pub mod merklewhitelist {
         Ok(())
     }
 
+    #[derive(Accounts)]
+    pub struct MintTokenToWallet<'info> {
+        #[account(mut)]
+        pub mint: Account<'info, Mint>,  
+        #[account(
+            mut,
+            seeds = [
+                b"MerkleTokenDistributor", 
+                payer.key().to_bytes().as_ref(),
+            ],
+            bump,
+        )]
+        pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
+        #[account(
+            init,
+            payer = payer,
+            associated_token::mint = mint,
+            associated_token::authority = payer,
+        )]
+        pub recipient: Account<'info, TokenAccount>,
+        #[account(mut)]
+        pub payer: Signer<'info>,
+        pub rent: Sysvar<'info, Rent>,
+        pub system_program: Program<'info, System>,
+        pub associated_token_program: Program<'info, AssociatedToken>,
+        pub token_program: Program<'info, Token>,
+}
+
     pub fn mint_token_to_wallet(
         ctx: Context<MintTokenToWallet>, 
         merkle_distributor_pda_bump: u8,
-        index: u64,
         amount: u64,
-        proof: Vec<[u8; 32]>,
     ) -> Result<()> {
         msg!("Start of token mint operation...");
         
@@ -47,16 +100,15 @@ pub mod merklewhitelist {
         //check that the owner is a Signer
         require!(ctx.accounts.payer.is_signer, MerkleError::Unauthorized);
 
-        //a node/leaf in a merkletree - hash(index, payer.key, amount)
-        let leaf = keccak::hashv(&[
-            &index.to_le_bytes(),
+        let proof = keccak::hashv(&[&payer.key().to_bytes()]);
+        //a node/leaf in a merkletree - hash(payer.key)
+        let mut leaf = keccak::hashv(&[
             &payer.key().to_bytes(),
-            &amount.to_le_bytes(),
         ]);
-        //proof, root and leaf
+        leaf.0 = token_distributor.root;
         require!(
-            merkle_verify(proof, token_distributor.root, leaf.0),
-            MerkleError::InvalidProof
+            merkle_verify(proof.0, token_distributor.root, leaf.0),
+            MerkleError::InvalidProof, 
         );
 
         msg!("Mint: {}", ctx.accounts.mint.to_account_info().key());
@@ -107,65 +159,6 @@ pub mod merklewhitelist {
 
 }
 
-
-#[derive(Accounts)]
-pub struct InitDistributor<'info> {
-    #[account(
-        init,
-         seeds = [
-            b"MerkleTokenDistributor".as_ref(),
-            payer.key().to_bytes().as_ref()
-        ],
-        bump,
-        space = 8 + 99,
-        payer = payer,
-    )]
-    pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
-    #[account(mut)]
-    pub payer: Signer<'info>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct MintTokenToWallet<'info> {
-    #[account(mut)]
-    pub mint: Account<'info, Mint>,  
-    #[account(
-        mut,
-        seeds = [
-             b"MerkleTokenDistributor", 
-             payer.key().to_bytes().as_ref(),
-        ],
-        bump,
-    )]
-    pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
-     #[account(
-        init,
-        payer = payer,
-        associated_token::mint = mint,
-        associated_token::authority = payer,
-     )]
-    pub recipient: Account<'info, TokenAccount>,
-    #[account(mut)]
-    pub payer: Signer<'info>,
-    pub rent: Sysvar<'info, Rent>,
-    pub system_program: Program<'info, System>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub token_program: Program<'info, Token>,
-}
-
-#[account]
-#[derive(Default)]
-pub struct MerkleTokenDistributor {
-    //256-bit Merkle root
-    pub root: [u8; 32],
-    /// Bump seed.
-    pub bump: u8,
-    //total token amount minted
-    pub total_amount_minted: u64,
-    //MAX num of tokens that can be minted
-    pub max_mint_amount: u64,
-}
 
 #[error_code]
 pub enum MerkleError {

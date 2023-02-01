@@ -1,11 +1,6 @@
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
 import { Merklewhitelist } from "../target/types/merklewhitelist";
-import {
-  getMerkleProof,
-  getMerkleRoot,
-  getMerkleTree,
-} from "@metaplex-foundation/js";
 import BN from 'bn.js';
 import {
   TOKEN_PROGRAM_ID,
@@ -53,41 +48,6 @@ describe("merklewhitelist", () => {
   
   it("Mints a token to a wallet", async () => {
     
-    const allowAddresses = [
-        "NMC4r582ErAaCrFFJZQ9PhkxtPmFpWFMkoZEEQT1mvk",
-        "HirkJEZy8Q3zdUuN55Ci8Gz71Ggb46wpqmodqz1He2jF",
-        "DP7KM2Y4wAGU3RLLVWZ7g1N52aafNRnLvSYDrb6E9siL",
-        "3hZu5KH5CSAtnfERxbKnFMTRy1VwPkyEphkm2PRfZjTB",
-    ];
-    
-    let index: number;
-
-    let amount: number;
-    
-    const leaf = Buffer.from([
-    ...new BN(index).toArray('le', 8),
-    ...payer.publicKey.toBuffer(),
-    ...new BN(amount).toArray('le', 8),
-    ]);
-
-    const merkleTree = getMerkleTree(allowAddresses);
-
-    const root = getMerkleRoot(allowAddresses);
-    console.log("root: ", root);
-
-    const proof = getMerkleProof(allowAddresses, leaf, index);
-    console.log("proof: ", proof)
-
-    const matches = merkleTree.verify(
-      proof,
-      leaf,
-      Buffer.from(root),
-    );
-
-    if (!matches) {
-      throw new Error('Merkle proof does not match');
-    }
-
     //PDA
     const [merkleDistributor, merkleDistributorPdaBump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -145,12 +105,14 @@ describe("merklewhitelist", () => {
       lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
       signature: airdropSignature,
     });
+
+    let index: number;
+
+    let amount: number;
     
     await program.methods.mintTokenToWallet(
       merkleDistributorPdaBump,
-      new BN(index),
       new BN(amount),
-      proof,
     ).accounts({
       mint: mintKeypair.publicKey,
       merkleDistributor: merkleDistributor,
