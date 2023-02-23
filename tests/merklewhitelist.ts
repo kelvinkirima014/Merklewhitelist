@@ -1,6 +1,7 @@
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
 import { Merklewhitelist } from "../target/types/merklewhitelist";
+import { getMerkleProof, getMerkleRoot } from '@metaplex-foundation/js';
 import BN from 'bn.js';
 import {
   TOKEN_PROGRAM_ID,
@@ -109,10 +110,27 @@ describe("merklewhitelist", () => {
     let index: number;
 
     let amount: number;
-    
-    await program.methods.mintTokenToWallet(
-      merkleDistributorPdaBump,
-      new BN(amount),
+   
+    const allowAddresses = [
+      '5BHhaUTkfAvYMjwvNhtJzMyM5hVCPZaRMYtaGsrkE328',
+      'ANMC4r582ErAaCrFFJZQ9PhkxtPmFpWFMkoZEEQT1mvk',
+      'HirkJEZy8Q3zdUuN55Ci8Gz71Ggb46wpqmodqz1He2jF',
+      'DP7KM2Y4wAGU3RLLVWZ7g1N52aafNRnLvSYDrb6E9siL',                                                                       
+    ]
+
+    const leaf = Buffer.from([
+      ...new anchor.BN(index).toArray('le', 8),
+      ...mintKeypair.publicKey.toBuffer(),
+      ...new anchor.BN(amount).toArray('le', 8),
+      ]);
+
+    //const proof = getMerkleProof(allowAddresses, 'ANMC4r582ErAaCrFFJZQ9PhkxtPmFpWFMkoZEEQT1mvk')
+    let proof = getMerkleProof(allowAddresses, leaf, index);
+    console.log("proof: ", proof);
+
+    await program.methods.mintTokenToWallet(merkleDistributorPdaBump, 
+      new BN(proof), 
+      new BN(amount)
     ).accounts({
       mint: mintKeypair.publicKey,
       merkleDistributor: merkleDistributor,

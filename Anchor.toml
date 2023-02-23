@@ -1,7 +1,7 @@
 [features]
 seeds = false
 skip-lint = false
-[programs.localnet]
+[programs.devnet]
 merklewhitelist = "5oKxBtfSUuyDQYQx3bMVpFTMZDJufPaKmtr8YnJSwpme"
 
 [registry]

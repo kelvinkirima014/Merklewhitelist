@@ -1,5 +1,3 @@
-mod merkletree;
-
 use anchor_lang::{prelude::*, solana_program::keccak};
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -8,7 +6,7 @@ use anchor_spl::{
 
 declare_id!("5oKxBtfSUuyDQYQx3bMVpFTMZDJufPaKmtr8YnJSwpme");
 
-fn merkle_verify(proof: Vec<[u8;32]>, root: [u8; 32], leaf: [u8; 32]) -> bool {
+fn merkle_verify(proof: Vec<[u8; 32]>, root: [u8; 32], leaf: [u8; 32]) -> bool {
     let mut computed_hash = leaf;
     for proof_element in proof.into_iter() {
         if computed_hash <= proof_element {
