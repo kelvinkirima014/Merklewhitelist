@@ -20,6 +20,8 @@ fn merkle_verify(proof: Vec<[u8; 32]>, root: [u8; 32], leaf: [u8; 32]) -> bool {
 
 #[program]
 pub mod merklewhitelist {
+    use anchor_lang::solana_program::pubkey::PUBKEY_BYTES;
+
     use super::*;
 
     #[account]
@@ -44,13 +46,17 @@ pub mod merklewhitelist {
                 payer.key().to_bytes().as_ref()
             ],
             bump,
-            space = 8 + 99 + 99,
+            space = 8 + InitDistributor::LEN,
             payer = payer,
         )]
         pub merkle_distributor: Account<'info, MerkleTokenDistributor>,
         #[account(mut)]
         pub payer: Signer<'info>,
         pub system_program: Program<'info, System>,
+    }
+
+    impl<'a> InitDistributor<'a>{
+        pub const LEN: usize = PUBKEY_BYTES + 1 + 32 + PUBKEY_BYTES + 8 * 4;
     }
 
     pub fn init_distributor(ctx: Context<InitDistributor>, bump: u8) -> Result<()> {
@@ -91,6 +97,7 @@ pub mod merklewhitelist {
         ctx: Context<MintTokenToWallet>,
         merkle_distributor_pda_bump: u8,
         proof: Vec<[u8;32]>,
+        index: u64,
         amount: u64,
     ) -> Result<()> {
         msg!("Start of token mint operation...");
@@ -100,9 +107,12 @@ pub mod merklewhitelist {
         let token_distributor = &mut ctx.accounts.merkle_distributor;
         //check that the owner is a Signer
         require!(ctx.accounts.payer.is_signer, MerkleError::Unauthorized);
-        //a node/leaf in a merkletree - hash(payer.key)
-        let mut leaf = keccak::hashv(&[&payer.key().to_bytes()]);
-        leaf.0 = token_distributor.root;
+        //a node/leaf in a merkletree 
+        let leaf = keccak::hashv(&[
+            &payer.key().to_bytes(),
+            &index.to_le_bytes(),
+            &amount.to_le_bytes(),
+        ]);
         require!(
             merkle_verify(proof, token_distributor.root, leaf.0),
             MerkleError::InvalidProof,
