@@ -128,7 +128,7 @@ describe("merklewhitelist", () => {
     
     await program.methods.mintTokenToWallet(
       merkleDistributorPdaBump, 
-      new BN(proof), 
+      proof, 
       new BN(index),
       new BN(amount),
     ).accounts({
