@@ -107,11 +107,24 @@ describe("merklewhitelist", () => {
       signature: airdropSignature,
     });
 
+     const allowAddresses = [
+      "NMC4r582ErAaCrFFJZQ9PhkxtPmFpWFMkoZEEQT1mvk",
+      "HirkJEZy8Q3zdUuN55Ci8Gz71Ggb46wpqmodqz1He2jF",
+      "DP7KM2Y4wAGU3RLLVWZ7g1N52aafNRnLvSYDrb6E9siL",
+      "3hZu5KH5CSAtnfERxbKnFMTRy1VwPkyEphkm2PRfZjTB",
+    ];
+
     let index: number;
 
     let amount: number;
+
+     const leaf = Buffer.from([
+    ...new BN(index).toArray('le', 8),
+    ...payer.publicKey.toBuffer(),
+    ...new BN(amount).toArray('le', 8),
+    ]);
    
-    let proof: number;
+    let proof = getMerkleProof(allowAddresses, leaf, index);
     
     await program.methods.mintTokenToWallet(
       merkleDistributorPdaBump, 
